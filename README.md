@@ -1,5 +1,8 @@
 # Sync Integration Tests
 
+![i_sits](http://i2.kym-cdn.com/photos/images/original/000/264/092/e3f.jpg)
+
+
 This is a set of tests to test the sync functionality between Cloud Controller
 and Diego. It forces Cloud Controller and Diego into different states so that
 the sync process has to reconcile them.
