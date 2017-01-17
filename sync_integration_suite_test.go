@@ -4,14 +4,18 @@ import (
 	"flag"
 	"log"
 	"os"
+	"strings"
+	"time"
 
 	"code.cloudfoundry.org/bbs"
-	"code.cloudfoundry.org/cf-acceptance-tests/helpers/config"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
+	sync_integration "code.cloudfoundry.org/sync-integration-tests"
+	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	"github.com/cloudfoundry-incubator/cf-test-helpers/workflowhelpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 
 	"testing"
 )
@@ -19,12 +23,17 @@ import (
 var (
 	bbsClient  bbs.Client
 	logger     lager.Logger
-	testConfig config.CatsConfig
+	testConfig sync_integration.Config
 	testSetup  *workflowhelpers.ReproducibleTestSuiteSetup
 
 	bbsAddress    string
 	bbsClientCert string
 	bbsClientKey  string
+)
+
+const (
+	Timeout     = 60 * time.Second
+	PushTimeout = 2 * time.Minute
 )
 
 func init() {
@@ -48,7 +57,7 @@ var _ = BeforeSuite(func() {
 	bbsClient, err = bbs.NewSecureSkipVerifyClient(bbsAddress, bbsClientCert, bbsClientKey, 0, 0)
 	Expect(err).NotTo(HaveOccurred())
 
-	testConfig, err = config.NewCatsConfig(os.Getenv("CONFIG"))
+	testConfig, err = sync_integration.NewConfig(os.Getenv("CONFIG"))
 	Expect(err).NotTo(HaveOccurred())
 
 	testSetup = workflowhelpers.NewTestSuiteSetup(testConfig)
@@ -63,3 +72,17 @@ var _ = BeforeSuite(func() {
 var _ = AfterSuite(func() {
 	testSetup.Teardown()
 })
+
+func GetAppGuid(appName string) string {
+	cfApp := cf.Cf("app", appName, "--guid")
+	Eventually(cfApp, Timeout).Should(Exit(0))
+
+	appGuid := strings.TrimSpace(string(cfApp.Out.Contents()))
+	Expect(appGuid).NotTo(Equal(""))
+	return appGuid
+}
+
+func EnableDiego(appName string) {
+	guid := GetAppGuid(appName)
+	Eventually(cf.Cf("curl", "/v2/apps/"+guid, "-X", "PUT", "-d", `{"diego": true}`), Timeout).Should(Exit(0))
+}

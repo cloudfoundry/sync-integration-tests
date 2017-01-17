@@ -16,18 +16,18 @@ var _ = Describe("Syncing", func() {
 	Describe("Reconciling state between cc and diego", func() {
 		It("restarts processes missing from diego", func() {
 			appName := generator.PrefixedRandomName("SITS", "APP")
-			Expect(cf.Cf("push", appName, "--no-start", "-p", "fixtures/dora").Wait(testConfig.DefaultTimeoutDuration())).To(Exit(0))
-			Expect(cf.Cf("enable-diego", appName).Wait(testConfig.DefaultTimeoutDuration())).To(Exit(0))
-			Expect(cf.Cf("start", appName).Wait(testConfig.CfPushTimeoutDuration())).To(Exit(0))
+			Expect(cf.Cf("push", appName, "--no-start", "-p", "fixtures/dora").Wait(Timeout)).To(Exit(0))
+			EnableDiego(appName)
+			Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
 			Eventually(func() string {
 				return helpers.CurlAppRoot(testConfig, appName)
-			}, testConfig.DefaultTimeoutDuration()).Should(ContainSubstring("Hi, I'm Dora!"))
+			}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
 
 			desiredLRPs, err := bbsClient.DesiredLRPs(logger, models.DesiredLRPFilter{})
 			Expect(err).NotTo(HaveOccurred())
 
-			guid := cf.Cf("app", appName, "--guid").Wait(testConfig.DefaultTimeoutDuration()).Out.Contents()
+			guid := cf.Cf("app", appName, "--guid").Wait(Timeout).Out.Contents()
 			appGuid := strings.TrimSpace(string(guid))
 
 			processGuid := ""
@@ -46,23 +46,23 @@ var _ = Describe("Syncing", func() {
 			Eventually(func() error {
 				_, err := bbsClient.DesiredLRPByProcessGuid(logger, processGuid)
 				return err
-			}, testConfig.DefaultTimeoutDuration()).ShouldNot(HaveOccurred())
+			}, Timeout).ShouldNot(HaveOccurred())
 		})
 
 		It("refreshes stale processes", func() {
 			appName := generator.PrefixedRandomName("SITS", "APP")
-			Expect(cf.Cf("push", appName, "--no-start", "-p", "fixtures/dora").Wait(testConfig.DefaultTimeoutDuration())).To(Exit(0))
-			Expect(cf.Cf("enable-diego", appName).Wait(testConfig.DefaultTimeoutDuration())).To(Exit(0))
-			Expect(cf.Cf("start", appName).Wait(testConfig.CfPushTimeoutDuration())).To(Exit(0))
+			Expect(cf.Cf("push", appName, "--no-start", "-p", "fixtures/dora").Wait(Timeout)).To(Exit(0))
+			EnableDiego(appName)
+			Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
 			Eventually(func() string {
 				return helpers.CurlAppRoot(testConfig, appName)
-			}, testConfig.DefaultTimeoutDuration()).Should(ContainSubstring("Hi, I'm Dora!"))
+			}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
 
 			desiredLRPs, err := bbsClient.DesiredLRPs(logger, models.DesiredLRPFilter{})
 			Expect(err).NotTo(HaveOccurred())
 
-			guid := cf.Cf("app", appName, "--guid").Wait(testConfig.DefaultTimeoutDuration()).Out.Contents()
+			guid := cf.Cf("app", appName, "--guid").Wait(Timeout).Out.Contents()
 			appGuid := strings.TrimSpace(string(guid))
 
 			processGuid := ""
@@ -88,23 +88,23 @@ var _ = Describe("Syncing", func() {
 				desiredLRP, err := bbsClient.DesiredLRPByProcessGuid(logger, processGuid)
 				Expect(err).NotTo(HaveOccurred())
 				return desiredLRP.Instances
-			}, testConfig.DefaultTimeoutDuration()).Should(Equal(int32(1)))
+			}, Timeout).Should(Equal(int32(1)))
 		})
 
 		It("cancels processes that should not be running according to CC", func() {
 			appName := generator.PrefixedRandomName("SITS", "APP")
-			Expect(cf.Cf("push", appName, "--no-start", "-p", "fixtures/dora").Wait(testConfig.DefaultTimeoutDuration())).To(Exit(0))
-			Expect(cf.Cf("enable-diego", appName).Wait(testConfig.DefaultTimeoutDuration())).To(Exit(0))
-			Expect(cf.Cf("start", appName).Wait(testConfig.CfPushTimeoutDuration())).To(Exit(0))
+			Expect(cf.Cf("push", appName, "--no-start", "-p", "fixtures/dora").Wait(Timeout)).To(Exit(0))
+			EnableDiego(appName)
+			Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
 			Eventually(func() string {
 				return helpers.CurlAppRoot(testConfig, appName)
-			}, testConfig.DefaultTimeoutDuration()).Should(ContainSubstring("Hi, I'm Dora!"))
+			}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
 
 			desiredLRPs, err := bbsClient.DesiredLRPs(logger, models.DesiredLRPFilter{})
 			Expect(err).NotTo(HaveOccurred())
 
-			guid := cf.Cf("app", appName, "--guid").Wait(testConfig.DefaultTimeoutDuration()).Out.Contents()
+			guid := cf.Cf("app", appName, "--guid").Wait(Timeout).Out.Contents()
 			appGuid := strings.TrimSpace(string(guid))
 
 			var desiredLRP models.DesiredLRP
@@ -118,18 +118,18 @@ var _ = Describe("Syncing", func() {
 
 			Expect(desiredLRP).NotTo(BeNil())
 
-			Expect(cf.Cf("delete", "-f", appName).Wait(testConfig.DefaultTimeoutDuration())).To(Exit(0))
+			Expect(cf.Cf("delete", "-f", appName).Wait(Timeout)).To(Exit(0))
 
 			Eventually(func() string {
 				return helpers.CurlAppRoot(testConfig, appName)
-			}, testConfig.DefaultTimeoutDuration()).Should(ContainSubstring("404"))
+			}, Timeout).Should(ContainSubstring("404"))
 
 			Expect(bbsClient.DesireLRP(logger, &desiredLRP)).To(Succeed())
 
 			Eventually(func() error {
 				_, err := bbsClient.DesiredLRPByProcessGuid(logger, desiredLRP.ProcessGuid)
 				return err
-			}, testConfig.DefaultTimeoutDuration()).Should(Equal(models.ErrResourceNotFound))
+			}, Timeout).Should(Equal(models.ErrResourceNotFound))
 		})
 	})
 })
