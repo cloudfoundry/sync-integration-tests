@@ -11,7 +11,7 @@ inputs:
   - name: environment
 
 run:
-  path: sync-integraiotn-tests/concourse/task.sh
+  path: sync-integration-tests/concourse/task.sh
 
 params:
   NODES: 3
