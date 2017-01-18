@@ -3,8 +3,8 @@
 pushd environment
   keys_dir=$(mktemp -d)
   export BOSH_CA_CERT="${keys_dir}/bosh-ca.crt"
-  export BOSH_USER=$(bbl director-username)
-  export BOSH_PASSWORD=$(bbl director-password)
+  export BOSH_CLIENT=$(bbl director-username)
+  export BOSH_CLIENT_SECRET=$(bbl director-password)
   export BOSH_ENVIRONMENT=$(bbl director-address)
   export BOSH_GW_USER=vcap
   export BOSH_GW_HOST=$(bbl director-address | cut -d: -f2 | tr -d /)
@@ -31,8 +31,11 @@ cat > "$CONFIG" <<EOF
 }
 EOF
 
-pushd sync-integration-tests
-  ginkgo -v -stream -nodes="${NODES}" --  \
+mkdir "${GOPATH}/src/code.cloudfoundry.org"
+cp -a sync-integration-tests "${GOPATH}/src/code.cloudfoundry.org"
+
+pushd "${GOPATH}/src/code.cloudfoundry.org/sync-integration-tests"
+  ginkgo -nodes="${NODES}" --  \
     --bbs-client-cert="${BBS_CLIENT_CERT_PATH}" \
     --bbs-client-key="${BBS_CLIENT_KEY_PATH}" \
     --use-gateway

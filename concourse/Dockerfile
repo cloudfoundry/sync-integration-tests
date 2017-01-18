@@ -54,3 +54,8 @@ RUN \
 RUN \
   wget -q -O cf.deb "https://cli.run.pivotal.io/stable?release=debian64&version=6.23.1&source=github-rel" && \
   dpkg -i cf.deb
+
+# fake out bosh-init for bbl
+RUN \
+  touch /usr/bin/bosh-init && \
+  chmod a+x /usr/bin/bosh-init
