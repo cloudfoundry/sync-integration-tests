@@ -1,5 +1,8 @@
 #!/bin/bash
 
+set -x
+set -e
+
 pushd environment
   keys_dir=$(mktemp -d)
   export BOSH_CA_CERT="${keys_dir}/bosh-ca.crt"
@@ -40,3 +43,5 @@ pushd "${GOPATH}/src/code.cloudfoundry.org/sync-integration-tests"
     --bbs-client-key="${BBS_CLIENT_KEY_PATH}" \
     --use-gateway
 popd
+
+exit 0

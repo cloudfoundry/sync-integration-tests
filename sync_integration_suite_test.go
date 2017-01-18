@@ -45,7 +45,6 @@ const (
 )
 
 func init() {
-
 	flag.StringVar(&bbsAddress, "bbs-address", "https://10.244.16.2:8889", "http address for the bbs (required)")
 	flag.StringVar(&bbsClientCert, "bbs-client-cert", "", "bbs client ssl certificate")
 	flag.StringVar(&bbsClientKey, "bbs-client-key", "", "bbs client ssl key")
@@ -110,7 +109,7 @@ var _ = SynchronizedAfterSuite(func() {
 	}
 }, func() {
 	if session != nil {
-		Eventually(session.Interrupt()).Should(Exit())
+		session.Kill()
 	}
 })
 
