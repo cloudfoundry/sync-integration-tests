@@ -16,7 +16,7 @@ var _ = Describe("Syncing", func() {
 	Describe("Reconciling state between cc and diego", func() {
 		It("restarts processes missing from diego", func() {
 			appName := generator.PrefixedRandomName("SITS", "APP")
-			Expect(cf.Cf("push", appName, "--no-start", "-p", "fixtures/dora").Wait(Timeout)).To(Exit(0))
+			Expect(cf.Cf("push", appName, "--no-start", "-p", "fixtures/dora", "-b", "ruby_buildpack").Wait(Timeout)).To(Exit(0))
 			EnableDiego(appName)
 			Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
@@ -51,7 +51,7 @@ var _ = Describe("Syncing", func() {
 
 		It("refreshes stale processes", func() {
 			appName := generator.PrefixedRandomName("SITS", "APP")
-			Expect(cf.Cf("push", appName, "--no-start", "-p", "fixtures/dora").Wait(Timeout)).To(Exit(0))
+			Expect(cf.Cf("push", appName, "--no-start", "-p", "fixtures/dora", "-b", "ruby_buildpack").Wait(Timeout)).To(Exit(0))
 			EnableDiego(appName)
 			Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
@@ -93,7 +93,7 @@ var _ = Describe("Syncing", func() {
 
 		It("cancels processes that should not be running according to CC", func() {
 			appName := generator.PrefixedRandomName("SITS", "APP")
-			Expect(cf.Cf("push", appName, "--no-start", "-p", "fixtures/dora").Wait(Timeout)).To(Exit(0))
+			Expect(cf.Cf("push", appName, "--no-start", "-p", "fixtures/dora", "-b", "ruby_buildpack").Wait(Timeout)).To(Exit(0))
 			EnableDiego(appName)
 			Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
