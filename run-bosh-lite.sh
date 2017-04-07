@@ -1,6 +1,13 @@
 #!/bin/bash
 
-config_path=$(mktemp -d)
+set -e
+
+if [ $(uname) == 'Darwin' ]; then
+  config_path=$(mktemp -d -t 'sits')
+else
+  config_path=$(mktemp -d)
+fi
+
 export CONFIG=${config_path}/config.json
 
 cat > "$CONFIG" <<EOF
