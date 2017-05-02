@@ -13,8 +13,8 @@ type Config struct {
 	ApiEndpoint        string `json:"cf_api"`
 	AdminUser          string `json:"cf_admin_user"`
 	AdminPassword      string `json:"cf_admin_password"`
-	SkipSSLValidation  bool   `json:"skip_ssl_validation"`
-	AppsDomain         string `json:"apps_domain"`
+	SkipSSLValidation  bool   `json:"cf_skip_ssl_validation"`
+	AppsDomain         string `json:"cf_apps_domain"`
 	BBSClientCert      string `json:"bbs_client_cert"`
 	BBSClientKey       string `json:"bbs_client_key"`
 	BoshBinary         string `json:"bosh_binary"`
@@ -59,7 +59,7 @@ func (c Config) Validate() error {
 		missingProperties = append(missingProperties, "cf_admin_password")
 	}
 	if c.AppsDomain == "" {
-		missingProperties = append(missingProperties, "apps_domain")
+		missingProperties = append(missingProperties, "cf_apps_domain")
 	}
 	if c.BBSClientCert == "" {
 		missingProperties = append(missingProperties, "bbs_client_cert")
