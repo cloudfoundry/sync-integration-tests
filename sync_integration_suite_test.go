@@ -1,8 +1,6 @@
 package sync_integration_test
 
 import (
-	"flag"
-	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -18,6 +16,9 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 
+	"encoding/json"
+	"fmt"
+	"log"
 	"testing"
 )
 
@@ -27,39 +28,36 @@ var (
 	testConfig sync_integration.Config
 	testSetup  *workflowhelpers.ReproducibleTestSuiteSetup
 
-	useGateway   bool
-	instanceName string
-	boshBinary   string
-
-	bbsAddress    string
-	bbsClientCert string
-	bbsClientKey  string
-
 	session *Session
 )
 
 const (
-	ShortTimeout = 10 * time.Second
-	Timeout      = 60 * time.Second
-	PushTimeout  = 2 * time.Minute
+	BBSAddress      = "https://127.0.0.1:8889"
+	ShortTimeout    = 10 * time.Second
+	Timeout         = 60 * time.Second
+	PushTimeout     = 2 * time.Minute
+	PollingInterval = 5 * time.Second
 )
 
-func init() {
-	flag.StringVar(&bbsAddress, "bbs-address", "https://10.244.16.2:8889", "http address for the bbs (required)")
-	flag.StringVar(&bbsClientCert, "bbs-client-cert", "", "bbs client ssl certificate")
-	flag.StringVar(&bbsClientKey, "bbs-client-key", "", "bbs client ssl key")
-
-	flag.BoolVar(&useGateway, "use-gateway", false, "use a gateway to reach the BBS")
-	flag.Parse()
-
-	if bbsAddress == "" {
-		log.Fatal("i need a bbs address to talk to Diego...")
+func loadConfigAndSetVariables() {
+	var err error
+	configPath := os.Getenv("CONFIG")
+	if configPath == "" {
+		log.Fatal("Missing required environment variable CONFIG.")
 	}
+	testConfig, err = sync_integration.NewConfig(configPath)
+	Expect(err).NotTo(HaveOccurred())
 
-	if useGateway {
-		instanceName = os.Getenv("BOSH_INSTANCE")
-		boshBinary = os.Getenv("BOSH_BINARY")
-	}
+	err = testConfig.Validate()
+	Expect(err).NotTo(HaveOccurred())
+
+	os.Setenv("BOSH_CA_CERT", testConfig.BoshCACert)
+	os.Setenv("BOSH_CLIENT", testConfig.BoshClient)
+	os.Setenv("BOSH_CLIENT_SECRET", testConfig.BoshClientSecret)
+	os.Setenv("BOSH_ENVIRONMENT", testConfig.BoshEnvironment)
+	os.Setenv("BOSH_GW_USER", testConfig.BoshGWUser)
+	os.Setenv("BOSH_GW_HOST", testConfig.BoshGWHost)
+	os.Setenv("BOSH_GW_PRIVATE_KEY", testConfig.BoshGWPrivateKey)
 }
 
 func TestSITSTests(t *testing.T) {
@@ -68,36 +66,34 @@ func TestSITSTests(t *testing.T) {
 }
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	var err error
+	loadConfigAndSetVariables()
 
-	if useGateway {
-		bbsAddress = "https://127.0.0.1:8889"
-		command := exec.Command(boshBinary,
-			"ssh",
-			instanceName,
-			"--opts=-N",
-			"--opts=-L 8889:bbs.service.cf.internal:8889",
-		)
-		session, err = Start(command, GinkgoWriter, GinkgoWriter)
-		Expect(err).NotTo(HaveOccurred())
-	}
-
-	return []byte(bbsAddress)
-}, func(bbsAddress []byte) {
+	command := exec.Command(testConfig.BoshBinary,
+		"-d",
+		testConfig.BoshDeploymentName,
+		"ssh",
+		testConfig.APIInstance,
+		"--opts=-N",
+		"--opts=-L 8889:bbs.service.cf.internal:8889",
+	)
 	var err error
-	logger = lagertest.NewTestLogger("sits")
+	session, err = Start(command, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred())
+
+	return nil
+}, func(_ []byte) {
+	loadConfigAndSetVariables()
+
+	logger = lagertest.NewTestLogger("sits")
 
 	logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.INFO))
 
-	bbsClient, err = bbs.NewSecureSkipVerifyClient(string(bbsAddress), bbsClientCert, bbsClientKey, 0, 0)
+	var err error
+	bbsClient, err = bbs.NewSecureSkipVerifyClient(BBSAddress, testConfig.BBSClientCert, testConfig.BBSClientKey, 0, 0)
 	Expect(err).NotTo(HaveOccurred())
 	Eventually(func() bool {
 		return bbsClient.Ping(logger)
-	}, ShortTimeout).Should(BeTrue())
-
-	testConfig, err = sync_integration.NewConfig(os.Getenv("CONFIG"))
-	Expect(err).NotTo(HaveOccurred())
+	}, ShortTimeout, 5*time.Second).Should(BeTrue(), "Unable to reach BBS at %s", BBSAddress)
 
 	testSetup = workflowhelpers.NewTestSuiteSetup(testConfig)
 	testSetup.Setup()
@@ -120,6 +116,24 @@ func GetAppGuid(appName string) string {
 	appGuid := strings.TrimSpace(string(cfApp.Out.Contents()))
 	Expect(appGuid).NotTo(Equal(""))
 	return appGuid
+}
+
+func GetDropletGuidForApp(appGuid string) string {
+	type Resource struct {
+		Guid string `json:"guid"`
+	}
+	type DropletResult struct {
+		Resources []Resource `json:"resources"`
+	}
+
+	app_droplets := cf.Cf("curl", fmt.Sprintf("/v3/apps/%s/droplets?per_page=1", appGuid)).Wait(Timeout).Out.Contents()
+	var dropletResult DropletResult
+	err := json.Unmarshal(app_droplets, &dropletResult)
+	Expect(err).NotTo(HaveOccurred())
+
+	Expect(dropletResult.Resources).To(HaveLen(1))
+
+	return dropletResult.Resources[0].Guid
 }
 
 func EnableDiego(appName string) {

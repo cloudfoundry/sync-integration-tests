@@ -2,20 +2,39 @@ package sync_integration
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"os"
+	"strings"
 	"time"
 )
 
 type Config struct {
-	ApiEndpoint       string `json:"api"`
-	AdminUser         string `json:"admin_user"`
-	AdminPassword     string `json:"admin_password"`
-	SkipSSLValidation bool   `json:"skip_ssl_validation"`
-	AppsDomain        string `json:"apps_domain"`
+	ApiEndpoint        string `json:"cf_api"`
+	AdminUser          string `json:"cf_admin_user"`
+	AdminPassword      string `json:"cf_admin_password"`
+	SkipSSLValidation  bool   `json:"skip_ssl_validation"`
+	AppsDomain         string `json:"apps_domain"`
+	BBSClientCert      string `json:"bbs_client_cert"`
+	BBSClientKey       string `json:"bbs_client_key"`
+	BoshBinary         string `json:"bosh_binary"`
+	APIInstance        string `json:"bosh_api_instance"`
+	BoshDeploymentName string `json:"bosh_deployment_name"`
+	BoshCACert         string `json:"bosh_ca_cert"`
+	BoshClient         string `json:"bosh_client"`
+	BoshClientSecret   string `json:"bosh_client_secret"`
+	BoshEnvironment    string `json:"bosh_environment"`
+	BoshGWUser         string `json:"bosh_gw_user"`
+	BoshGWHost         string `json:"bosh_gw_host"`
+	BoshGWPrivateKey   string `json:"bosh_gw_private_key"`
 }
 
 func NewConfig(path string) (Config, error) {
-	config := Config{}
+	config := Config{
+		BoshBinary:         "bosh",
+		APIInstance:        "api",
+		BoshDeploymentName: "cf",
+	}
 
 	configFile, err := os.Open(path)
 	if err != nil {
@@ -26,6 +45,55 @@ func NewConfig(path string) (Config, error) {
 	decoder := json.NewDecoder(configFile)
 	err = decoder.Decode(&config)
 	return config, err
+}
+
+func (c Config) Validate() error {
+	missingProperties := []string{}
+	if c.ApiEndpoint == "" {
+		missingProperties = append(missingProperties, "cf_api")
+	}
+	if c.AdminUser == "" {
+		missingProperties = append(missingProperties, "cf_admin_user")
+	}
+	if c.AdminPassword == "" {
+		missingProperties = append(missingProperties, "cf_admin_password")
+	}
+	if c.AppsDomain == "" {
+		missingProperties = append(missingProperties, "apps_domain")
+	}
+	if c.BBSClientCert == "" {
+		missingProperties = append(missingProperties, "bbs_client_cert")
+	}
+	if c.BBSClientKey == "" {
+		missingProperties = append(missingProperties, "bbs_client_key")
+	}
+	if c.BoshCACert == "" {
+		missingProperties = append(missingProperties, "bosh_ca_cert")
+	}
+	if c.BoshClient == "" {
+		missingProperties = append(missingProperties, "bosh_client")
+	}
+	if c.BoshClientSecret == "" {
+		missingProperties = append(missingProperties, "bosh_client_secret")
+	}
+	if c.BoshEnvironment == "" {
+		missingProperties = append(missingProperties, "bosh_environment")
+	}
+	if c.BoshGWUser == "" {
+		missingProperties = append(missingProperties, "bosh_gw_user")
+	}
+	if c.BoshGWHost == "" {
+		missingProperties = append(missingProperties, "bosh_gw_host")
+	}
+	if c.BoshGWPrivateKey == "" {
+		missingProperties = append(missingProperties, "bosh_gw_private_key")
+	}
+
+	if len(missingProperties) > 0 {
+		return errors.New(fmt.Sprintf("Missing required config properties: %s", strings.Join(missingProperties, ", ")))
+	} else {
+		return nil
+	}
 }
 
 func (c Config) GetAdminPassword() string { return c.AdminPassword }
