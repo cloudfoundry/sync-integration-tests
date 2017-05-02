@@ -40,6 +40,7 @@ cat > "$CONFIG" <<EOF
   "bbs_client_key": "${bbs_client_key_path}",
   "bosh_binary": "bosh",
   "bosh_api_instance": "api",
+  "bosh_deployment_name": "cf",
   "bosh_ca_cert": "${director_ca_cert}",
   "bosh_client": "admin",
   "bosh_client_secret": "${bosh_password}",

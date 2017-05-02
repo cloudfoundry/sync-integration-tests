@@ -24,6 +24,7 @@ pushd environment
   "bbs_client_key": "${PWD}/diego-certs/bbs-certs/client.key",
   "bosh_binary": "${BOSH_BINARY}",
   "bosh_api_instance": "${BOSH_API_INSTANCE}",
+  "bosh_deployment_name": "${BOSH_DEPLOYMENT_NAME}",
   "bosh_ca_cert": "${bosh_ca_cert}",
   "bosh_client": "$(bbl director-username)",
   "bosh_client_secret": "$(bbl director-password)",
