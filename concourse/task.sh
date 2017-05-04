@@ -2,10 +2,12 @@
 
 set -e
 
+: "${BBL_STATE_DIR:=""}"
+
 config_path=$(mktemp -d)
 export CONFIG=${config_path}/config.json
 
-pushd environment
+pushd "environment/${BBL_STATE_DIR}" > /dev/null
   keys_dir=$(mktemp -d)
   bosh_ca_cert="${keys_dir}/bosh-ca.crt"
   bbl director-ca-cert > "${bosh_ca_cert}"
@@ -34,13 +36,13 @@ pushd environment
   "bosh_gw_private_key": "${bosh_gw_private_key}"
 }
 EOF
-popd
+popd > /dev/null
 
 mkdir "${GOPATH}/src/code.cloudfoundry.org"
 cp -a sync-integration-tests "${GOPATH}/src/code.cloudfoundry.org"
 
-pushd "${GOPATH}/src/code.cloudfoundry.org/sync-integration-tests"
+pushd "${GOPATH}/src/code.cloudfoundry.org/sync-integration-tests" > /dev/null
   ginkgo -nodes="${NODES}"
-popd
+popd > /dev/null
 
 exit 0
