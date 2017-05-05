@@ -16,8 +16,10 @@ config_path=$(mktemp -d)
 export CONFIG=${config_path}/config.json
 
 pushd "environment/${BBL_STATE_DIR}" > /dev/null
+  mkdir -p "${PWD}/diego-certs/bbs-certs"
   bbs_cert_path="${PWD}/diego-certs/bbs-certs/client.crt"
   bbs_key_path="${PWD}/diego-certs/bbs-certs/client.key"
+
   if [ "${USE_CF_DEPLOYMENT_VARS}" = "true" ]; then
     vars_store_file="${vars_store_dir}/${VARS_STORE_PATH}"
     CF_ADMIN_PASSWORD="$(bosh int --path /uaa_scim_users_admin_password ${vars_store_file})"
@@ -55,7 +57,7 @@ pushd "environment/${BBL_STATE_DIR}" > /dev/null
 EOF
 popd > /dev/null
 
-mkdir "${GOPATH}/src/code.cloudfoundry.org"
+mkdir -p "${GOPATH}/src/code.cloudfoundry.org"
 cp -a sync-integration-tests "${GOPATH}/src/code.cloudfoundry.org"
 
 pushd "${GOPATH}/src/code.cloudfoundry.org/sync-integration-tests" > /dev/null
