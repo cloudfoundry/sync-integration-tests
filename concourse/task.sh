@@ -5,22 +5,26 @@ set -eu
 # ENV
 : "${BBL_STATE_DIR:=""}"
 : "${VARS_STORE_PATH:=""}"
-: "${CF_ADMIN_PASSWORD:=""}"
+: "${USE_CF_DEPLOYMENT_VARS:="false"}"
 
 # INPUTS
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 workspace_dir="$( cd "${script_dir}/../../" && pwd )"
 vars_store_dir="${workspace_dir}/vars-store" # optional
 
-if [ -z "${CF_ADMIN_PASSWORD}" ]; then
-  vars_store_file="${vars_store_dir}/${VARS_STORE_PATH}"
-  CF_ADMIN_PASSWORD="$(bosh int --path /uaa_scim_users_admin_password ${vars_store_file})"
-fi
-
 config_path=$(mktemp -d)
 export CONFIG=${config_path}/config.json
 
 pushd "environment/${BBL_STATE_DIR}" > /dev/null
+  bbs_cert_path="${PWD}/diego-certs/bbs-certs/client.crt"
+  bbs_key_path="${PWD}/diego-certs/bbs-certs/client.key"
+  if [ "${USE_CF_DEPLOYMENT_VARS}" = "true" ]; then
+    vars_store_file="${vars_store_dir}/${VARS_STORE_PATH}"
+    CF_ADMIN_PASSWORD="$(bosh int --path /uaa_scim_users_admin_password ${vars_store_file})"
+    bosh int --path /diego_bbs_client/certificate "${vars_store_file}" > "${bbs_cert_path}"
+    bosh int --path /diego_bbs_client/private_key "${vars_store_file}" > "${bbs_key_path}"
+  fi
+
   keys_dir=$(mktemp -d)
   bosh_ca_cert="${keys_dir}/bosh-ca.crt"
   bbl director-ca-cert > "${bosh_ca_cert}"
@@ -35,8 +39,8 @@ pushd "environment/${BBL_STATE_DIR}" > /dev/null
   "cf_admin_password": "${CF_ADMIN_PASSWORD}",
   "cf_skip_ssl_validation": ${CF_SKIP_SSL_VALIDATION},
   "cf_apps_domain": "${CF_APPS_DOMAIN}",
-  "bbs_client_cert": "${PWD}/diego-certs/bbs-certs/client.crt",
-  "bbs_client_key": "${PWD}/diego-certs/bbs-certs/client.key",
+  "bbs_client_cert": "${bbs_cert_path}",
+  "bbs_client_key": "${bbs_key_path}",
   "bosh_binary": "${BOSH_BINARY}",
   "bosh_api_instance": "${BOSH_API_INSTANCE}",
   "bosh_deployment_name": "${BOSH_DEPLOYMENT_NAME}",
