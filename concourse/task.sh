@@ -1,8 +1,21 @@
 #!/bin/bash
 
-set -e
+set -eu
 
+# ENV
 : "${BBL_STATE_DIR:=""}"
+: "${VARS_STORE_PATH:=""}"
+: "${CF_ADMIN_PASSWORD:=""}"
+
+# INPUTS
+script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+workspace_dir="$( cd "${script_dir}/../../" && pwd )"
+vars_store_dir="${workspace_dir}/vars-store" # optional
+
+if [ -z "${CF_ADMIN_PASSWORD}" ]; then
+  vars_store_file="${vars_store_dir}/${VARS_STORE_PATH}"
+  CF_ADMIN_PASSWORD="$(bosh int --path /uaa_scim_users_admin_password ${vars_store_file})"
+fi
 
 config_path=$(mktemp -d)
 export CONFIG=${config_path}/config.json
