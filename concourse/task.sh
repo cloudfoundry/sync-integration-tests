@@ -22,7 +22,7 @@ pushd "environment/${BBL_STATE_DIR}" > /dev/null
 
   if [ "${USE_CF_DEPLOYMENT_VARS}" = "true" ]; then
     vars_store_file="${vars_store_dir}/${VARS_STORE_PATH}"
-    CF_ADMIN_PASSWORD="$(bosh int --path /uaa_scim_users_admin_password ${vars_store_file})"
+    CF_ADMIN_PASSWORD="$(bosh int --path /cf_admin_password ${vars_store_file})"
     bosh int --path /diego_bbs_client/certificate "${vars_store_file}" > "${bbs_cert_path}"
     bosh int --path /diego_bbs_client/private_key "${vars_store_file}" > "${bbs_key_path}"
   fi
