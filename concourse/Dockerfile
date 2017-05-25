@@ -18,7 +18,6 @@ RUN \
     wget \
     curl \
     openssh-client \
-    jq \
     software-properties-common \
     unzip
 
@@ -38,8 +37,12 @@ RUN \
 
 RUN go get github.com/onsi/ginkgo/ginkgo
 
+# Install jq
+RUN wget -O /usr/local/bin/jq 'https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64' && \
+  chmod +x /usr/local/bin/jq
+
 # Install bbl
-RUN wget https://github.com/cloudfoundry/bosh-bootloader/releases/download/v2.0.9/bbl-v2.0.9_linux_x86-64 && \
+RUN wget "$(curl -s https://api.github.com/repos/cloudfoundry/bosh-bootloader/releases | jq -r 'map(select((.prerelease == false) and (.draft == false) and (.tag_name|startswith("v3"))))[0].assets[].browser_download_url' | grep _linux)" && \
   mv bbl-* /usr/local/bin/bbl && \
   chmod +x /usr/local/bin/bbl
 
