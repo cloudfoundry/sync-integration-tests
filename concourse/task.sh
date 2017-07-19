@@ -50,7 +50,7 @@ pushd "environment/${BBL_STATE_DIR}" > /dev/null
   "bosh_client": "$(bbl director-username)",
   "bosh_client_secret": "$(bbl director-password)",
   "bosh_environment": "$(bbl director-address)",
-  "bosh_gw_user": "jumpbox",
+  "bosh_gw_user": "${BOSH_GATEWAY_USER}",
   "bosh_gw_host": "$(bbl director-address | cut -d: -f2 | tr -d /)",
   "bosh_gw_private_key": "${bosh_gw_private_key}"
 }
