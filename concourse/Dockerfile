@@ -42,9 +42,11 @@ RUN wget -O /usr/local/bin/jq 'https://github.com/stedolan/jq/releases/download/
   chmod +x /usr/local/bin/jq
 
 # Install bbl
-RUN wget "$(curl -s https://api.github.com/repos/cloudfoundry/bosh-bootloader/releases | jq -r 'map(select((.prerelease == false) and (.draft == false) and (.tag_name|startswith("v4"))))[0].assets[].browser_download_url' | grep _linux)" && \
-  mv bbl-* /usr/local/bin/bbl && \
-  chmod +x /usr/local/bin/bbl
+RUN \
+  wget https://github.com/cloudfoundry/bosh-bootloader/releases/download/v4.7.3/bbl-v4.7.3_linux_x86-64 -P /tmp && \
+  mv /tmp/bbl-* /usr/local/bin/bbl && \
+  cd /usr/local/bin && \
+  chmod +x bbl
 
 # Install the golang bosh CLI
 RUN \
