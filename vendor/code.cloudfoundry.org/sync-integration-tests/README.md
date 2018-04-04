@@ -19,8 +19,6 @@ tasks.
 ## Running against a bosh-lite deployed with bosh-deployment
 
 ```bash
-go get github.com/golang/dep/cmd/dep
-dep ensure
 ./run-bosh-lite.sh
 ```
 
@@ -75,8 +73,10 @@ CONFIG=config.json ginkgo -nodes=3
 # Adding dependencies
 
 During development of test cases, if you need to add a new Golang dependency,
-make sure to add it to the vendor directory using [`dep`](http://golang.github.io/dep).
+make sure to add it to the vendor directory using `godep`.
 
 ```bash
-dep ensure -add <your new package> // you must import/use this package before running `dep ensure`
+go get <your new package> // If the dependency isn't already on your $GOPATH
+godep restore
+godep save ./...
 ```
