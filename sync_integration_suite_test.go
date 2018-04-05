@@ -9,30 +9,36 @@ import (
 	"code.cloudfoundry.org/bbs"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	sync_integration "code.cloudfoundry.org/sync-integration-tests"
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	"github.com/cloudfoundry-incubator/cf-test-helpers/workflowhelpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"log"
 	"testing"
+
+	"code.cloudfoundry.org/copilot"
+	"github.com/cloudfoundry/sync-integration-tests/config"
 )
 
 var (
-	bbsClient  bbs.Client
-	logger     lager.Logger
-	testConfig sync_integration.Config
-	testSetup  *workflowhelpers.ReproducibleTestSuiteSetup
+	bbsClient     bbs.Client
+	copilotClient copilot.CloudControllerClient
+	runRouteTests bool
+	logger        lager.Logger
+	testConfig    config.Config
+	testSetup     *workflowhelpers.ReproducibleTestSuiteSetup
 
 	session *Session
 )
 
 const (
 	BBSAddress      = "https://127.0.0.1:8889"
+	CopilotAddress  = "127.0.0.1:9001"
 	ShortTimeout    = 10 * time.Second
 	Timeout         = 60 * time.Second
 	PushTimeout     = 2 * time.Minute
@@ -45,7 +51,7 @@ func loadConfigAndSetVariables() {
 	if configPath == "" {
 		log.Fatal("Missing required environment variable CONFIG.")
 	}
-	testConfig, err = sync_integration.NewConfig(configPath)
+	testConfig, err = config.NewConfig(configPath)
 	Expect(err).NotTo(HaveOccurred())
 
 	err = testConfig.Validate()
@@ -75,6 +81,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		testConfig.APIInstance,
 		"--opts=-N",
 		"--opts=-L 8889:bbs.service.cf.internal:8889",
+		"--opts=-L 9001:copilot.service.cf.internal:9001",
 	)
 	var err error
 	session, err = Start(command, GinkgoWriter, GinkgoWriter)
@@ -94,6 +101,25 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	Eventually(func() bool {
 		return bbsClient.Ping(logger)
 	}, ShortTimeout, 5*time.Second).Should(BeTrue(), "Unable to reach BBS at %s", BBSAddress)
+
+	runRouteTests = testConfig.CopilotClientCert != "" && testConfig.CopilotClientKey != ""
+
+	if runRouteTests {
+		copilotClientCert, err := tls.LoadX509KeyPair(testConfig.CopilotClientCert, testConfig.CopilotClientKey)
+		copilotTLSConfig := &tls.Config{
+			MinVersion:               tls.VersionTLS12,
+			PreferServerCipherSuites: true,
+			CipherSuites: []uint16{
+				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+			},
+			InsecureSkipVerify: true,
+			Certificates:       []tls.Certificate{copilotClientCert},
+		}
+
+		copilotClient, err = copilot.NewCloudControllerClient(CopilotAddress, copilotTLSConfig)
+		Expect(err).NotTo(HaveOccurred())
+	}
 
 	testSetup = workflowhelpers.NewTestSuiteSetup(testConfig)
 	testSetup.Setup()
@@ -139,4 +165,29 @@ func GetDropletGuidForApp(appGuid string) string {
 func EnableDiego(appName string) {
 	guid := GetAppGuid(appName)
 	Eventually(cf.Cf("curl", "/v2/apps/"+guid, "-X", "PUT", "-d", `{"diego": true}`), Timeout).Should(Exit(0))
+}
+
+func GetRouteGuid(appName string) string {
+	appGuid := GetAppGuid(appName)
+
+	routes := cf.Cf("curl", fmt.Sprintf("/v2/apps/%s/routes", appGuid)).Wait(Timeout).Out.Contents()
+	Expect(routes).NotTo(BeEmpty())
+
+	type routesResponse struct {
+		Resources []struct {
+			Metadata struct {
+				Guid string
+			}
+			Entity struct {
+				Host string
+			}
+		}
+	}
+	r := &routesResponse{}
+
+	json.Unmarshal(routes, r)
+	routeGuid := r.Resources[0].Metadata.Guid
+	Expect(routeGuid).NotTo(BeEmpty())
+
+	return routeGuid
 }

@@ -31,6 +31,15 @@
   revision = "416e47ed81574c56d374faf434bc877fb0e83822"
 
 [[projects]]
+  branch = "master"
+  name = "code.cloudfoundry.org/copilot"
+  packages = [
+    ".",
+    "api"
+  ]
+  revision = "84c8996cae687496231a3a89efef605bfd163c71"
+
+[[projects]]
   name = "code.cloudfoundry.org/lager"
   packages = [
     ".",
@@ -47,12 +56,6 @@
   name = "code.cloudfoundry.org/runtimeschema"
   packages = ["metric"]
   revision = "5d256db4751844e23119896158bacb300fcd5372"
-
-[[projects]]
-  branch = "master"
-  name = "code.cloudfoundry.org/sync-integration-tests"
-  packages = ["."]
-  revision = "a7ae5b9bea21b864085e8cc0bbed53991feb9b2f"
 
 [[projects]]
   name = "github.com/bmizerany/pat"
@@ -97,6 +100,18 @@
     "sortkeys"
   ]
   revision = "f9114dace7bd920b32f943b3c73fafbcbab2bf31"
+
+[[projects]]
+  name = "github.com/golang/protobuf"
+  packages = [
+    "proto",
+    "ptypes",
+    "ptypes/any",
+    "ptypes/duration",
+    "ptypes/timestamp"
+  ]
+  revision = "925541529c1fa6821df4e44ce2723319eb2be768"
+  version = "v1.0.0"
 
 [[projects]]
   name = "github.com/hashicorp/consul"
@@ -180,9 +195,80 @@
   revision = "fd69d275caac5d78d793e77ddbe9bd2001d9b88d"
 
 [[projects]]
+  branch = "master"
+  name = "golang.org/x/net"
+  packages = [
+    "context",
+    "http2",
+    "http2/hpack",
+    "idna",
+    "internal/timeseries",
+    "lex/httplex",
+    "trace"
+  ]
+  revision = "b3c676e531a6dc479fa1b35ac961c13f5e2b4d2e"
+
+[[projects]]
   name = "golang.org/x/sys"
   packages = ["unix"]
   revision = "d75a52659825e75fff6158388dddc6a5b04f9ba5"
+
+[[projects]]
+  name = "golang.org/x/text"
+  packages = [
+    "collate",
+    "collate/build",
+    "internal/colltab",
+    "internal/gen",
+    "internal/tag",
+    "internal/triegen",
+    "internal/ucd",
+    "language",
+    "secure/bidirule",
+    "transform",
+    "unicode/bidi",
+    "unicode/cldr",
+    "unicode/norm",
+    "unicode/rangetable"
+  ]
+  revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
+  version = "v0.3.0"
+
+[[projects]]
+  branch = "master"
+  name = "google.golang.org/genproto"
+  packages = ["googleapis/rpc/status"]
+  revision = "35de2414665fc36f56b72d982c5af480d86de5ab"
+
+[[projects]]
+  name = "google.golang.org/grpc"
+  packages = [
+    ".",
+    "balancer",
+    "balancer/base",
+    "balancer/roundrobin",
+    "codes",
+    "connectivity",
+    "credentials",
+    "encoding",
+    "encoding/proto",
+    "grpclb/grpc_lb_v1/messages",
+    "grpclog",
+    "internal",
+    "keepalive",
+    "metadata",
+    "naming",
+    "peer",
+    "resolver",
+    "resolver/dns",
+    "resolver/passthrough",
+    "stats",
+    "status",
+    "tap",
+    "transport"
+  ]
+  revision = "1e2570b1b19ade82d8dbb31bba4e65e9f9ef5b34"
+  version = "v1.11.1"
 
 [[projects]]
   name = "gopkg.in/yaml.v2"
@@ -192,6 +278,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a77e9df47b9952312f08452ded42d9cd77cb01906ddcf0594ac0b2344fe211a7"
+  inputs-digest = "61a06e4e3df770ca87da57fd78dadb501991fbb08bbd077964e9a666023d116f"
   solver-name = "gps-cdcl"
   solver-version = 1
