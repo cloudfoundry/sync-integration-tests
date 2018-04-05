@@ -162,11 +162,6 @@ func GetDropletGuidForApp(appGuid string) string {
 	return dropletResult.Resources[0].Guid
 }
 
-func EnableDiego(appName string) {
-	guid := GetAppGuid(appName)
-	Eventually(cf.Cf("curl", "/v2/apps/"+guid, "-X", "PUT", "-d", `{"diego": true}`), Timeout).Should(Exit(0))
-}
-
 func GetRouteGuid(appName string) string {
 	appGuid := GetAppGuid(appName)
 
