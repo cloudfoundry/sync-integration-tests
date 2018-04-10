@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"code.cloudfoundry.org/copilot"
-	"github.com/cloudfoundry/sync-integration-tests/config"
+	"code.cloudfoundry.org/sync-integration-tests/config"
 )
 
 var (
