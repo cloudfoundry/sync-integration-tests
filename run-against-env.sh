@@ -7,6 +7,7 @@ set -exu
 : "${BOSH_DEPLOYMENT_NAME:="cf"}"
 : "${BOSH_API_INSTANCE:="api/0"}"
 : "${CF_SKIP_SSL_VALIDATION:="true"}"
+: "${DEPLOYMENT_VARS_FILENAME:="deployment-vars.yml"}"
 :  BBL_STATE_DIR
 :  VARS_STORE_PATH
 :  CF_APPS_DOMAIN
@@ -15,9 +16,8 @@ set -exu
 config_dir=$(mktemp -d /tmp/sits-config.XXXXXX)
 export CONFIG=${config_dir}/config.json
 echo "$config_dir"
-vars_store_file="${VARS_STORE_PATH}"
 
-pushd "${BBL_STATE_DIR}" > /dev/null
+pushd "${VARS_STORE_PATH}" > /dev/null
 set +x
   bosh_certs_dir=$(mktemp -d /tmp/sits-bosh-certs.XXXXXX)
 
@@ -25,10 +25,14 @@ set +x
   bbs_cert_path="${bosh_certs_dir}/diego-certs/bbs-certs/client.crt"
   bbs_key_path="${bosh_certs_dir}/diego-certs/bbs-certs/client.key"
 
-  CF_ADMIN_PASSWORD="$(bosh int --path /cf_admin_password ${vars_store_file})"
-  bosh int --path /diego_bbs_client/certificate "${vars_store_file}" > "${bbs_cert_path}"
-  bosh int --path /diego_bbs_client/private_key "${vars_store_file}" > "${bbs_key_path}"
+  CF_ADMIN_PASSWORD="$(bosh int --path /cf_admin_password ${DEPLOYMENT_VARS_FILENAME})"
+  bosh int --path /diego_bbs_client/certificate "${DEPLOYMENT_VARS_FILENAME}" > "${bbs_cert_path}"
+  bosh int --path /diego_bbs_client/private_key "${DEPLOYMENT_VARS_FILENAME}" > "${bbs_key_path}"
+set -x
+popd > /dev/null
 
+pushd "${BBL_STATE_DIR}" > /dev/null
+set +x
   keys_dir=$(mktemp -d /tmp/sits-keys-dir.XXXXXX)
   bosh_ca_cert="${keys_dir}/bosh-ca.crt"
   bbl director-ca-cert > "${bosh_ca_cert}"
