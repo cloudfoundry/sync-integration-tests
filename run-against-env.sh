@@ -9,7 +9,6 @@ set -exu
 : "${CF_SKIP_SSL_VALIDATION:="true"}"
 :  BBL_STATE_DIR
 :  VARS_STORE_PATH
-:  CF_API_TARGET
 :  CF_APPS_DOMAIN
 
 # INPUTS
@@ -18,6 +17,7 @@ export CONFIG=${config_dir}/config.json
 echo "$config_dir"
 
 pushd "${BBL_STATE_DIR}" > /dev/null
+set +x
   bosh_certs_dir=$(mktemp -d /tmp/sits-bosh-certs.XXXXXX)
 
   mkdir -p "${bosh_certs_dir}/diego-certs/bbs-certs"
@@ -38,7 +38,7 @@ pushd "${BBL_STATE_DIR}" > /dev/null
 
   cat > "$CONFIG" <<EOF
 {
-  "cf_api": "${CF_API_TARGET}",
+  "cf_api": "api.${CF_APPS_DOMAIN}",
   "cf_admin_user": "admin",
   "cf_admin_password": "${CF_ADMIN_PASSWORD}",
   "cf_skip_ssl_validation": ${CF_SKIP_SSL_VALIDATION},
@@ -57,9 +57,10 @@ pushd "${BBL_STATE_DIR}" > /dev/null
   "bosh_gw_private_key": "${bosh_gw_private_key}"
 }
 EOF
+set -x
 popd > /dev/null
 
-ginkgo -nodes=3
+ginkgo -nodes=3 -randomizeAllSpecs
 
 rm -r "${config_dir}"
 rm -r "${bosh_certs_dir}"
