@@ -15,6 +15,7 @@ set -exu
 config_dir=$(mktemp -d /tmp/sits-config.XXXXXX)
 export CONFIG=${config_dir}/config.json
 echo "$config_dir"
+vars_store_file="${VARS_STORE_PATH}"
 
 pushd "${BBL_STATE_DIR}" > /dev/null
 set +x
@@ -24,7 +25,6 @@ set +x
   bbs_cert_path="${bosh_certs_dir}/diego-certs/bbs-certs/client.crt"
   bbs_key_path="${bosh_certs_dir}/diego-certs/bbs-certs/client.key"
 
-  vars_store_file="${VARS_STORE_PATH}"
   CF_ADMIN_PASSWORD="$(bosh int --path /cf_admin_password ${vars_store_file})"
   bosh int --path /diego_bbs_client/certificate "${vars_store_file}" > "${bbs_cert_path}"
   bosh int --path /diego_bbs_client/private_key "${vars_store_file}" > "${bbs_key_path}"
