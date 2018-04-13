@@ -64,7 +64,7 @@ EOF
 set -x
 popd > /dev/null
 
-ginkgo -nodes=3 -randomizeAllSpecs
+ginkgo -r -nodes=3 -randomizeAllSpecs
 
 rm -r "${config_dir}"
 rm -r "${bosh_certs_dir}"
