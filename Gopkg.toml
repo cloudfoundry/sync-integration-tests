@@ -23,6 +23,7 @@
 #   non-go = false
 #   go-tests = true
 #   unused-packages = true
+required = ["github.com/onsi/ginkgo/ginkgo"]
 
 [[constraint]]
   branch = "update_org_name"
