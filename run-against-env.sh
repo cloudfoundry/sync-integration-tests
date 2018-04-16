@@ -64,6 +64,9 @@ EOF
 set -x
 popd > /dev/null
 
+cd $(dirname "${BASH_SOURCE[0]}")/..
+
+go install code.cloudfoundry.org/sync-integration-tests/vendor/github.com/onsi/ginkgo/ginkgo
 ginkgo -r -nodes=3 -randomizeAllSpecs
 
 rm -r "${config_dir}"
