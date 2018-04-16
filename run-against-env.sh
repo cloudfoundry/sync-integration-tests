@@ -31,6 +31,8 @@ set +x
   bosh int --path /diego_bbs_client/certificate "${DEPLOYMENT_VARS_FILENAME}" > "${bbs_cert_path}"
   bosh int --path /diego_bbs_client/private_key "${DEPLOYMENT_VARS_FILENAME}" > "${bbs_key_path}"
 
+  copilot_client_cert_path=""
+  copilot_client_key_path=""
   if [ "${RUN_ROUTING_TESTS}" = true ]; then
     mkdir -p "${bosh_certs_dir}/routing-certs/copilot-certs"
     copilot_client_cert_path="${bosh_certs_dir}/routing-certs/copilot-certs/client.crt"
