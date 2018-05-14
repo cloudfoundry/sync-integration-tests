@@ -1,5 +1,7 @@
 FROM ubuntu:trusty
 
+ENV bosh_cli_version 3.0.1
+
 RUN \
   echo "****** This is my working directory ******" && \
   pwd && \
@@ -50,10 +52,8 @@ RUN \
 
 # Install the golang bosh CLI
 RUN \
-  wget https://s3.amazonaws.com/bosh-cli-artifacts/bosh-cli-0.0.147-linux-amd64 --output-document="/usr/bin/bosh" && \
-  cd /usr/bin && \
-  echo "533342d7663c3e5dc731769e157608c74dd9eccb bosh" | sha1sum -c - && \
-  chmod +x bosh
+  wget https://s3.amazonaws.com/bosh-cli-artifacts/bosh-cli-${bosh_cli_version}-linux-amd64 --output-document="/usr/bin/bosh" && \
+  chmod +x /usr/bin/bosh
 
 # Install the cf CLI
 RUN \
