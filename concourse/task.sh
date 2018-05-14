@@ -14,9 +14,10 @@ vars_store_dir="${workspace_dir}/vars-store" # optional
 
 config_path=$(mktemp -d)
 export CONFIG=${config_path}/config.json
-eval "$(bbl print-env)"
 
 pushd "environment/${BBL_STATE_DIR}" > /dev/null
+  eval "$(bbl print-env)"
+
   mkdir -p "${PWD}/diego-certs/bbs-certs"
   bbs_cert_path="${PWD}/diego-certs/bbs-certs/client.crt"
   bbs_key_path="${PWD}/diego-certs/bbs-certs/client.key"
