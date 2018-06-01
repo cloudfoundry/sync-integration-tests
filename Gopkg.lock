@@ -152,6 +152,7 @@
     "internal/leafnodes",
     "internal/remote",
     "internal/spec",
+    "internal/spec_iterator",
     "internal/specrunner",
     "internal/suite",
     "internal/testingtproxy",
@@ -162,7 +163,8 @@
     "reporters/stenographer/support/go-isatty",
     "types"
   ]
-  revision = "a23f924ce96d61f963fb6219b8ff069d8d768cc2"
+  revision = "fa5fabab2a1bfbd924faf4c067d07ae414e2aedf"
+  version = "v1.5.0"
 
 [[projects]]
   name = "github.com/onsi/gomega"
