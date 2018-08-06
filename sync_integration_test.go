@@ -121,7 +121,7 @@ var _ = Describe("Syncing", func() {
 
 				Expect(desiredLRP).NotTo(BeNil())
 
-				Expect(cf.Cf("delete", "-f", "-r", appName).Wait(Timeout)).To(Exit(0))
+				Expect(cf.Cf("delete", "-f", appName).Wait(Timeout)).To(Exit(0))
 
 				Eventually(func() string {
 					return helpers.CurlAppRoot(testConfig, appName)
