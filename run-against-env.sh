@@ -68,7 +68,7 @@ main() {
 
       cat > "$CONFIG" <<EOF
 {
-  "cf_api": "api.${CF_APPS_DOMAIN}",
+  "cf_api": "api.${CF_SYSTEM_DOMAIN}",
   "cf_admin_user": "admin",
   "cf_admin_password": "${CF_ADMIN_PASSWORD}",
   "cf_skip_ssl_validation": ${CF_SKIP_SSL_VALIDATION},
