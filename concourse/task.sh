@@ -6,6 +6,14 @@ set -eu
 : "${BBL_STATE_DIR:=""}"
 : "${VARS_STORE_PATH:=""}"
 : "${USE_CF_DEPLOYMENT_VARS:="false"}"
+: "${USE_CREDHUB:="false"}"
+
+get_from_credhub() {
+  set +x
+  local credential_name=$1
+  local credential_section=$2
+  echo $(credhub find -j -n ${credential_name} | jq -r .credentials[].name | xargs credhub get -j -n | jq -r .${credential_section})
+}
 
 # INPUTS
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -27,6 +35,10 @@ pushd "environment/${BBL_STATE_DIR}" > /dev/null
     CF_ADMIN_PASSWORD="$(bosh int --path /cf_admin_password ${vars_store_file})"
     bosh int --path /diego_bbs_client/certificate "${vars_store_file}" > "${bbs_cert_path}"
     bosh int --path /diego_bbs_client/private_key "${vars_store_file}" > "${bbs_key_path}"
+  elif [ "${USE_CREDHUB}" = "true" ]; then
+    CF_ADMIN_PASSWORD="$(get_from_credhub cf_admin_password value)"
+    get_from_credhub diego_bbs_client value.certificate > "${bbs_cert_path}"
+    get_from_credhub diego_bbs_client value.private_key > "${bbs_key_path}"
   fi
 
   keys_dir=$(mktemp -d)
