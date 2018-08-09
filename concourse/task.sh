@@ -12,7 +12,7 @@ get_from_credhub() {
   set +x
   local credential_name=$1
   local credential_section=$2
-  echo $(credhub find -j -n ${credential_name} | jq -r .credentials[].name | xargs credhub get -j -n | jq -r .${credential_section})
+  credhub find -j -n ${credential_name} | jq -r .credentials[].name | xargs credhub get -j -n | jq -r .${credential_section}
 }
 
 # INPUTS
