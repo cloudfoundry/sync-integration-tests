@@ -25,6 +25,19 @@ import (
 	"code.cloudfoundry.org/sync-integration-tests/config"
 )
 
+type relationship struct {
+	App   map[string]string `json:"app"`
+	Route map[string]string `json:"route"`
+}
+
+type routeList struct {
+	Resources []struct {
+		Metadata struct {
+			Guid string `json:"guid"`
+		} `json:"metadata"`
+	} `json:"resources"`
+}
+
 var (
 	bbsClient     bbs.Client
 	copilotClient copilot.CloudControllerClient

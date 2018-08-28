@@ -199,30 +199,72 @@ var _ = Describe("Syncing", func() {
 		Describe("RouteMappings syncing", func() {
 			It("Adds missing route mappings to copilot", func() {
 				appName := generator.PrefixedRandomName("SITS", "APP")
-				Expect(cf.Cf("push", appName, "--no-start", "-d", testConfig.GetAppsDomain(), "-p", "fixtures/dora", "-b", "ruby_buildpack").Wait(Timeout)).To(Exit(0))
+
+				Expect(cf.Cf("push", appName, "--no-start", "--no-route", "-p", "fixtures/dora", "-b", "ruby_buildpack").Wait(Timeout)).To(Exit(0))
+				Expect(cf.Cf("create-route", testSetup.RegularUserContext().Space, testConfig.GetAppsDomain(), "--hostname", appName).Wait(Timeout)).To(Exit(0))
+
+				appGUID := GetAppGuid(appName)
+
+				getRoutePath := fmt.Sprintf("/v2/routes?q=host:%s", appName)
+				routeBody := cf.Cf("curl", getRoutePath).Wait().Out.Contents()
+
+				var routeJSON routeList
+				json.Unmarshal([]byte(routeBody), &routeJSON)
+				routeGUID := routeJSON.Resources[0].Metadata.Guid
+
+				body := struct {
+					Relationship relationship `json:"relationships"`
+					Weight       int          `json:"weight"`
+				}{
+					Relationship: relationship{
+						App: map[string]string{
+							"guid": appGUID,
+						},
+						Route: map[string]string{
+							"guid": routeGUID,
+						},
+					},
+					Weight: 2,
+				}
+
+				bodyJSON, err := json.Marshal(body)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(cf.Cf("curl", "/v3/route_mappings", "-H", "Content-Type: application/json", "-X", "POST", "-d", fmt.Sprintf(`'%s'`, string(bodyJSON))).Wait(Timeout)).To(Exit(0))
+
 				Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
 				Eventually(func() string {
 					return helpers.CurlAppRoot(testConfig, appName)
 				}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
 
-				appGuid := GetAppGuid(appName)
-				routeGuid := GetRouteGuid(appName)
-
 				routeMapping := &api.RouteMapping{
-					RouteGuid:       routeGuid,
-					CapiProcessGuid: appGuid,
+					RouteGuid:       routeGUID,
+					CapiProcessGuid: appGUID,
+					RouteWeight:     2,
 				}
-				_, err := copilotClient.UnmapRoute(context.Background(), &api.UnmapRouteRequest{
+				_, err = copilotClient.UnmapRoute(context.Background(), &api.UnmapRouteRequest{
 					RouteMapping: routeMapping,
 				})
 				Expect(err).NotTo(HaveOccurred())
 
-				Eventually(func() *api.RouteMapping {
+				var returnedMapping *api.RouteMapping
+				Eventually(func() bool {
+					var found bool
 					response, err := copilotClient.ListCfRouteMappings(context.Background(), &api.ListCfRouteMappingsRequest{})
 					Expect(err).NotTo(HaveOccurred())
-					return response.RouteMappings[fmt.Sprintf("%s-%s", routeGuid, appGuid)]
-				}, Timeout).Should(Equal(routeMapping))
+
+					if mapping, ok := response.RouteMappings[fmt.Sprintf("%s-%s", routeGUID, appGUID)]; ok {
+						returnedMapping = mapping
+						found = true
+					}
+
+					return found
+				}, Timeout).Should(BeTrue())
+
+				Expect(returnedMapping.RouteGuid).To(Equal(routeGUID))
+				Expect(returnedMapping.CapiProcessGuid).To(Equal(appGUID))
+				Expect(returnedMapping.RouteWeight).To(Equal(int32(2)))
 			})
 
 			It("Removes extraneous route mappings from copilot", func() {
