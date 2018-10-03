@@ -3,7 +3,6 @@ package sync_integration_test
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"strings"
 
 	"encoding/json"
@@ -123,16 +122,9 @@ var _ = Describe("Syncing", func() {
 
 				Expect(cf.Cf("delete", "-f", appName).Wait(Timeout)).To(Exit(0))
 
-				if !runRouteTests {
-					Eventually(func() string {
-						return Curl(testConfig.AppsDomain, appName)
-					}, Timeout).Should(ContainSubstring("404"))
-				} else {
-					Eventually(func() (int, error) {
-						resp, err := http.Get(fmt.Sprintf("http://%s.%s", appName, testConfig.GetAppsDomain()))
-						return resp.StatusCode, err
-					}, Timeout).Should(Equal(http.StatusNotFound))
-				}
+				Eventually(func() string {
+					return Curl(testConfig.AppsDomain, appName)
+				}, Timeout).Should(ContainSubstring("404"))
 
 				Expect(bbsClient.DesireLRP(logger, &desiredLRP)).To(Succeed())
 
