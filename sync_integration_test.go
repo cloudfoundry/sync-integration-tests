@@ -12,7 +12,6 @@ import (
 	"code.cloudfoundry.org/copilot/api"
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	"github.com/cloudfoundry-incubator/cf-test-helpers/generator"
-	"github.com/cloudfoundry-incubator/cf-test-helpers/helpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -27,7 +26,7 @@ var _ = Describe("Syncing", func() {
 				Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
 				Eventually(func() string {
-					return helpers.CurlAppRoot(testConfig, appName)
+					return Curl(testConfig.AppsDomain, appName)
 				}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
 
 				desiredLRPs, err := bbsClient.DesiredLRPs(logger, models.DesiredLRPFilter{})
@@ -61,7 +60,7 @@ var _ = Describe("Syncing", func() {
 				Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
 				Eventually(func() string {
-					return helpers.CurlAppRoot(testConfig, appName)
+					return Curl(testConfig.AppsDomain, appName)
 				}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
 
 				desiredLRPs, err := bbsClient.DesiredLRPs(logger, models.DesiredLRPFilter{})
@@ -102,7 +101,7 @@ var _ = Describe("Syncing", func() {
 				Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
 				Eventually(func() string {
-					return helpers.CurlAppRoot(testConfig, appName)
+					return Curl(testConfig.AppsDomain, appName)
 				}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
 
 				desiredLRPs, err := bbsClient.DesiredLRPs(logger, models.DesiredLRPFilter{})
@@ -126,7 +125,7 @@ var _ = Describe("Syncing", func() {
 
 				if !runRouteTests {
 					Eventually(func() string {
-						return helpers.CurlAppRoot(testConfig, appName)
+						return Curl(testConfig.AppsDomain, appName)
 					}, Timeout).Should(ContainSubstring("404"))
 				} else {
 					Eventually(func() (int, error) {
@@ -159,7 +158,7 @@ var _ = Describe("Syncing", func() {
 				Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
 				Eventually(func() string {
-					return helpers.CurlAppRoot(testConfig, appName)
+					return Curl(testConfig.AppsDomain, appName)
 				}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
 
 				routeGuid := GetRouteGuid(appName)
@@ -235,7 +234,7 @@ var _ = Describe("Syncing", func() {
 				Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
 				Eventually(func() string {
-					return helpers.CurlAppRoot(testConfig, appName)
+					return Curl(testConfig.AppsDomain, appName)
 				}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
 
 				routeMapping := &api.RouteMapping{
@@ -293,7 +292,7 @@ var _ = Describe("Syncing", func() {
 					Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
 					Eventually(func() string {
-						return helpers.CurlAppRoot(testConfig, appName)
+						return Curl(testConfig.AppsDomain, appName)
 					}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
 
 					guid := cf.Cf("app", appName, "--guid").Wait(Timeout).Out.Contents()

@@ -1,6 +1,8 @@
 package sync_integration_test
 
 import (
+	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
 	"strings"
@@ -198,4 +200,13 @@ func GetRouteGuid(appName string) string {
 	Expect(routeGuid).NotTo(BeEmpty())
 
 	return routeGuid
+}
+
+func Curl(appsDomain, appName string) string {
+	resp, err := http.Get(fmt.Sprintf("http://%s.%s", appName, appsDomain))
+	Expect(err).ToNot(HaveOccurred())
+	defer resp.Body.Close()
+	b, err := ioutil.ReadAll(resp.Body)
+	Expect(err).ToNot(HaveOccurred())
+	return string(b)
 }
