@@ -3,6 +3,7 @@ package sync_integration_test
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"encoding/json"
@@ -25,7 +26,8 @@ var _ = Describe("Syncing", func() {
 				Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
 				Eventually(func() string {
-					return Curl(testConfig.AppsDomain, appName)
+					body, _ := Curl(testConfig.AppsDomain, appName)
+					return body
 				}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
 
 				desiredLRPs, err := bbsClient.DesiredLRPs(logger, models.DesiredLRPFilter{})
@@ -59,7 +61,8 @@ var _ = Describe("Syncing", func() {
 				Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
 				Eventually(func() string {
-					return Curl(testConfig.AppsDomain, appName)
+					body, _ := Curl(testConfig.AppsDomain, appName)
+					return body
 				}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
 
 				desiredLRPs, err := bbsClient.DesiredLRPs(logger, models.DesiredLRPFilter{})
@@ -100,7 +103,8 @@ var _ = Describe("Syncing", func() {
 				Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
 				Eventually(func() string {
-					return Curl(testConfig.AppsDomain, appName)
+					body, _ := Curl(testConfig.AppsDomain, appName)
+					return body
 				}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
 
 				desiredLRPs, err := bbsClient.DesiredLRPs(logger, models.DesiredLRPFilter{})
@@ -122,9 +126,10 @@ var _ = Describe("Syncing", func() {
 
 				Expect(cf.Cf("delete", "-f", appName).Wait(Timeout)).To(Exit(0))
 
-				Eventually(func() string {
-					return Curl(testConfig.AppsDomain, appName)
-				}, Timeout).Should(ContainSubstring("404"))
+				Eventually(func() int {
+					_, statusCode := Curl(testConfig.AppsDomain, appName)
+					return statusCode
+				}, Timeout, "1s").Should(Equal(http.StatusNotFound))
 
 				Expect(bbsClient.DesireLRP(logger, &desiredLRP)).To(Succeed())
 
@@ -150,7 +155,8 @@ var _ = Describe("Syncing", func() {
 				Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
 				Eventually(func() string {
-					return Curl(testConfig.AppsDomain, appName)
+					body, _ := Curl(testConfig.AppsDomain, appName)
+					return body
 				}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
 
 				routeGuid := GetRouteGuid(appName)
@@ -226,7 +232,8 @@ var _ = Describe("Syncing", func() {
 				Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
 				Eventually(func() string {
-					return Curl(testConfig.AppsDomain, appName)
+					body, _ := Curl(testConfig.AppsDomain, appName)
+					return body
 				}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
 
 				routeMapping := &api.RouteMapping{
@@ -284,7 +291,8 @@ var _ = Describe("Syncing", func() {
 					Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
 					Eventually(func() string {
-						return Curl(testConfig.AppsDomain, appName)
+						body, _ := Curl(testConfig.AppsDomain, appName)
+						return body
 					}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
 
 					guid := cf.Cf("app", appName, "--guid").Wait(Timeout).Out.Contents()

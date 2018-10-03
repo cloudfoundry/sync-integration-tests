@@ -202,11 +202,13 @@ func GetRouteGuid(appName string) string {
 	return routeGuid
 }
 
-func Curl(appsDomain, appName string) string {
+func Curl(appsDomain, appName string) (string, int) {
 	resp, err := http.Get(fmt.Sprintf("http://%s.%s", appName, appsDomain))
 	Expect(err).ToNot(HaveOccurred())
 	defer resp.Body.Close()
-	b, err := ioutil.ReadAll(resp.Body)
+
+	body, err := ioutil.ReadAll(resp.Body)
 	Expect(err).ToNot(HaveOccurred())
-	return string(b)
+
+	return string(body), resp.StatusCode
 }
