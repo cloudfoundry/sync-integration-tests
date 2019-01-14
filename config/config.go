@@ -29,6 +29,7 @@ type Config struct {
 	BoshGWUser         string `json:"bosh_gw_user"`
 	BoshGWHost         string `json:"bosh_gw_host"`
 	BoshGWPrivateKey   string `json:"bosh_gw_private_key"`
+	RunRevisionsTests bool `json:"run_revisions_tests"`
 }
 
 func NewConfig(path string) (Config, error) {

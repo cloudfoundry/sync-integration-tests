@@ -22,7 +22,7 @@ var _ = Describe("Syncing", func() {
 		Describe("LRP Syncing", func() {
 			It("restarts processes missing from diego", func() {
 				appName := generator.PrefixedRandomName("SITS", "APP")
-				Expect(cf.Cf("push", appName, "--no-start", "-d", testConfig.GetAppsDomain(), "-s", "cflinuxfs3", "-p", "fixtures/dora", "-b", "ruby_buildpack").Wait(Timeout)).To(Exit(0))
+				Expect(cf.Cf("push", appName, "--no-start", "-s", "cflinuxfs3", "-p", "fixtures/dora", "-b", "ruby_buildpack").Wait(Timeout)).To(Exit(0))
 				Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
 				Eventually(func() string {
@@ -30,24 +30,8 @@ var _ = Describe("Syncing", func() {
 					return body
 				}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
 
-				desiredLRPs, err := bbsClient.DesiredLRPs(logger, models.DesiredLRPFilter{})
-				Expect(err).NotTo(HaveOccurred())
-
-				guid := cf.Cf("app", appName, "--guid").Wait(Timeout).Out.Contents()
-				appGuid := strings.TrimSpace(string(guid))
-
-				processGuid := ""
-
-				for _, desiredLRP := range desiredLRPs {
-					if strings.Contains(desiredLRP.ProcessGuid, appGuid) {
-						processGuid = desiredLRP.ProcessGuid
-						break
-					}
-				}
-
-				Expect(processGuid).NotTo(BeEmpty())
-
-				Expect(bbsClient.RemoveDesiredLRP(logger, processGuid)).To(Succeed())
+				processGuid := GetProcessGuid(appName)
+				DeleteProcessGuidFromDiego(processGuid)
 
 				Eventually(func() error {
 					_, err := bbsClient.DesiredLRPByProcessGuid(logger, processGuid)
@@ -137,6 +121,55 @@ var _ = Describe("Syncing", func() {
 					_, err := bbsClient.DesiredLRPByProcessGuid(logger, desiredLRP.ProcessGuid)
 					return err
 				}, Timeout).Should(Equal(models.ErrResourceNotFound))
+			})
+
+			Describe("revisions", func() {
+				BeforeEach(func() {
+					if !testConfig.RunRevisionsTests {
+						Skip("skipping revisions tests")
+					}
+				})
+
+				It("prefers revisions to current_droplet when restarting missing processes", func() {
+					appName := generator.PrefixedRandomName("SITS", "APP")
+					By("staging OG dora to get a droplet we can set later")
+					Expect(cf.Cf("push", appName, "-p", "fixtures/dora", "-b", "ruby_buildpack").Wait(PushTimeout)).To(Exit(0))
+					appGuid := GetAppGuid(appName)
+					ogDoraGuid := GetDropletGuidForApp(appGuid)
+
+					revisionsEnablePath := fmt.Sprintf("/v3/apps/%s/features/revisions", appGuid)
+					Expect(cf.Cf("curl", revisionsEnablePath, "-X", "PATCH", "-d", `{"enabled": true}`).Wait()).To(Exit(0))
+
+					Eventually(func() string {
+						body, _ := Curl(testConfig.AppsDomain, appName)
+						return body
+					}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
+
+					By("deploying other dora to be the last intentionally started revision")
+					Expect(cf.Cf("v3-push", appName, "-p", "fixtures/other-dora", "-b", "ruby_buildpack").Wait(PushTimeout)).To(Exit(0))
+
+					Eventually(func() string {
+						body, _ := Curl(testConfig.AppsDomain, appName)
+						return body
+					}, Timeout).Should(ContainSubstring("Hi, I'm Other Dora!"))
+
+					By("setting droplet back to OG dora")
+					Expect(cf.Cf("v3-set-droplet", appName, "-d", ogDoraGuid).Wait()).To(Exit(0))
+
+					processGuid := GetProcessGuid(appName)
+					DeleteProcessGuidFromDiego(processGuid)
+
+					Eventually(func() error {
+						_, err := bbsClient.DesiredLRPByProcessGuid(logger, processGuid)
+						return err
+					}, Timeout).ShouldNot(HaveOccurred())
+
+					By("when everything has converged, we should be running the last intentionally started revision")
+					Eventually(func() string {
+						body, _ := Curl(testConfig.AppsDomain, appName)
+						return body
+					}, Timeout).Should(ContainSubstring("Hi, I'm Other Dora!"))
+				})
 			})
 		})
 	})

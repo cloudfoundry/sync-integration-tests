@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/bbs"
+	"code.cloudfoundry.org/bbs/models"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
@@ -44,6 +45,7 @@ var (
 	bbsClient     bbs.Client
 	copilotClient copilot.CloudControllerClient
 	runRouteTests bool
+	runRevisionsTests bool
 	logger        lager.Logger
 	testConfig    config.Config
 	testSetup     *workflowhelpers.ReproducibleTestSuiteSetup
@@ -157,6 +159,27 @@ func GetAppGuid(appName string) string {
 	appGuid := strings.TrimSpace(string(cfApp.Out.Contents()))
 	Expect(appGuid).NotTo(Equal(""))
 	return appGuid
+}
+
+func GetProcessGuid(appName string) string {
+	desiredLRPs, err := bbsClient.DesiredLRPs(logger, models.DesiredLRPFilter{})
+	Expect(err).NotTo(HaveOccurred())
+
+	guid := cf.Cf("app", appName, "--guid").Wait(Timeout).Out.Contents()
+	appGuid := strings.TrimSpace(string(guid))
+
+	for _, desiredLRP := range desiredLRPs {
+		if strings.Contains(desiredLRP.ProcessGuid, appGuid) {
+			return desiredLRP.ProcessGuid
+		}
+	}
+	return ""
+}
+
+func DeleteProcessGuidFromDiego(processGuid string) {
+	Expect(processGuid).NotTo(BeEmpty())
+
+	Expect(bbsClient.RemoveDesiredLRP(logger, processGuid)).To(Succeed())
 }
 
 func GetDropletGuidForApp(appGuid string) string {
