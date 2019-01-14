@@ -2,11 +2,10 @@ package sync_integration_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
-
-	"encoding/json"
 
 	"code.cloudfoundry.org/bbs/models"
 	"code.cloudfoundry.org/copilot/api"
@@ -304,6 +303,7 @@ var _ = Describe("Syncing", func() {
 				routeMapping := &api.RouteMapping{
 					RouteGuid:       extraneousRouteGuid,
 					CapiProcessGuid: extraneousAppGuid,
+					RouteWeight:     1,
 				}
 				_, err := copilotClient.MapRoute(context.Background(), &api.MapRouteRequest{
 					RouteMapping: routeMapping,
