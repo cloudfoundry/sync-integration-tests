@@ -7,6 +7,7 @@ set -eu
 : "${VARS_STORE_PATH:=""}"
 : "${USE_CF_DEPLOYMENT_VARS:="false"}"
 : "${USE_CREDHUB:="false"}"
+: "${RUN_REVISIONS_TESTS:="false"}"
 
 get_from_credhub() {
   set +x
@@ -66,7 +67,8 @@ pushd "environment/${BBL_STATE_DIR}" > /dev/null
   "bosh_environment": "$(bbl director-address)",
   "bosh_gw_user": "${BOSH_GATEWAY_USER}",
   "bosh_gw_host": "$(bbl director-address | cut -d: -f2 | tr -d /)",
-  "bosh_gw_private_key": "${bosh_gw_private_key}"
+  "bosh_gw_private_key": "${bosh_gw_private_key}",
+  "run_revisions_tests": ${RUN_REVISIONS_TESTS}
 }
 EOF
 popd > /dev/null
