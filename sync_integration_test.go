@@ -21,7 +21,7 @@ var _ = Describe("Syncing", func() {
 		Describe("LRP Syncing", func() {
 			It("restarts processes missing from diego", func() {
 				appName := generator.PrefixedRandomName("SITS", "APP")
-				Expect(cf.Cf("push", appName, "--no-start", "-s", "cflinuxfs3", "-p", "fixtures/dora", "-b", "ruby_buildpack").Wait(Timeout)).To(Exit(0))
+				Expect(cf.Cf("push", appName, "--no-start", "-d", testConfig.GetAppsDomain(), "-s", "cflinuxfs3", "-p", "fixtures/dora", "-b", "ruby_buildpack").Wait(Timeout)).To(Exit(0))
 				Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
 				Eventually(func() string {
