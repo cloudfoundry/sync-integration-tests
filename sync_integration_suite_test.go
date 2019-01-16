@@ -42,13 +42,13 @@ type routeList struct {
 }
 
 var (
-	bbsClient     bbs.Client
-	copilotClient copilot.CloudControllerClient
-	runRouteTests bool
+	bbsClient         bbs.Client
+	copilotClient     copilot.CloudControllerClient
+	runRouteTests     bool
 	runRevisionsTests bool
-	logger        lager.Logger
-	testConfig    config.Config
-	testSetup     *workflowhelpers.ReproducibleTestSuiteSetup
+	logger            lager.Logger
+	testConfig        config.Config
+	testSetup         *workflowhelpers.ReproducibleTestSuiteSetup
 
 	session *Session
 )

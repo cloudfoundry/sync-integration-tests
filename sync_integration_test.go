@@ -153,7 +153,7 @@ var _ = Describe("Syncing", func() {
 					}, Timeout).Should(ContainSubstring("Hi, I'm Other Dora!"))
 
 					By("setting droplet back to OG dora")
-					Expect(cf.Cf("v3-set-droplet", appName, "-d", ogDoraGuid).Wait()).To(Exit(0))
+					Expect(cf.Cf("v3-set-droplet", appName, "-d", ogDoraGuid).Wait(ShortTimeout)).To(Exit(0))
 
 					processGuid := GetProcessGuid(appName)
 					DeleteProcessGuidFromDiego(processGuid)
