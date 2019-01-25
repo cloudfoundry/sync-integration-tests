@@ -25,7 +25,7 @@ var _ = Describe("Syncing", func() {
 				Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
 				Eventually(func() string {
-					body, _ := Curl(testConfig.AppsDomain, appName)
+					body, _ := CurlAppRoot(appName)
 					return body
 				}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
 
@@ -44,7 +44,7 @@ var _ = Describe("Syncing", func() {
 				Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
 				Eventually(func() string {
-					body, _ := Curl(testConfig.AppsDomain, appName)
+					body, _ := CurlAppRoot(appName)
 					return body
 				}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
 
@@ -86,7 +86,7 @@ var _ = Describe("Syncing", func() {
 				Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
 				Eventually(func() string {
-					body, _ := Curl(testConfig.AppsDomain, appName)
+					body, _ := CurlAppRoot(appName)
 					return body
 				}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
 
@@ -110,7 +110,7 @@ var _ = Describe("Syncing", func() {
 				Expect(cf.Cf("delete", "-f", appName).Wait(Timeout)).To(Exit(0))
 
 				Eventually(func() int {
-					_, statusCode := Curl(testConfig.AppsDomain, appName)
+					_, statusCode := CurlAppRoot(appName)
 					return statusCode
 				}, Timeout, "1s").Should(Equal(http.StatusNotFound))
 
@@ -129,30 +129,47 @@ var _ = Describe("Syncing", func() {
 					}
 				})
 
-				It("prefers revisions to current_droplet when restarting missing processes", func() {
+				It("prefers latest_revision to current app state when restarting missing processes", func() {
 					appName := generator.PrefixedRandomName("SITS", "APP")
 					By("staging OG dora to get a droplet we can set later")
-					Expect(cf.Cf("push", appName, "-p", "fixtures/dora", "-b", "ruby_buildpack").Wait(PushTimeout)).To(Exit(0))
+					Expect(cf.Cf("push", appName,
+						"-p", "fixtures/dora",
+						"-b", "ruby_buildpack",
+					).Wait(PushTimeout)).To(Exit(0))
 					appGuid := GetAppGuid(appName)
 					ogDoraGuid := GetDropletGuidForApp(appGuid)
 
+					Expect(cf.Cf("set-env", appName, "FOO", "og_bar").Wait(ShortTimeout)).To(Exit(0))
 					revisionsEnablePath := fmt.Sprintf("/v3/apps/%s/features/revisions", appGuid)
-					Expect(cf.Cf("curl", revisionsEnablePath, "-X", "PATCH", "-d", `{"enabled": true}`).Wait()).To(Exit(0))
+					Expect(cf.Cf("curl", revisionsEnablePath, "-X", "PATCH", "-d", `{"enabled": true}`).Wait(ShortTimeout)).To(Exit(0))
+					Expect(cf.Cf("v3-restart", appName).Wait(PushTimeout)).To(Exit(0))
 
 					Eventually(func() string {
-						body, _ := Curl(testConfig.AppsDomain, appName)
+						body, _ := CurlAppRoot(appName)
 						return body
 					}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
 
+					Eventually(func() string {
+						body, _ := CurlApp(appName, "/env/FOO")
+						return body
+					}, Timeout).Should(ContainSubstring("og_bar"))
+
 					By("deploying other dora to be the last intentionally started revision")
+					Expect(cf.Cf("v3-set-env", appName, "FOO", "ng_bar").Wait(ShortTimeout)).To(Exit(0))
 					Expect(cf.Cf("v3-push", appName, "-p", "fixtures/other-dora", "-b", "ruby_buildpack").Wait(PushTimeout)).To(Exit(0))
 
 					Eventually(func() string {
-						body, _ := Curl(testConfig.AppsDomain, appName)
+						body, _ := CurlAppRoot(appName)
 						return body
 					}, Timeout).Should(ContainSubstring("Hi, I'm Other Dora!"))
 
-					By("setting droplet back to OG dora")
+					Eventually(func() string {
+						body, _ := CurlApp(appName, "/env/FOO")
+						return body
+					}, Timeout).Should(ContainSubstring("ng_bar"))
+
+					By("setting droplet back to OG dora and the env var back to og_bar")
+					Expect(cf.Cf("v3-set-env", appName, "FOO", "og_bar").Wait(ShortTimeout)).To(Exit(0))
 					Expect(cf.Cf("v3-set-droplet", appName, "-d", ogDoraGuid).Wait(ShortTimeout)).To(Exit(0))
 
 					processGuid := GetProcessGuid(appName)
@@ -161,13 +178,18 @@ var _ = Describe("Syncing", func() {
 					Eventually(func() error {
 						_, err := bbsClient.DesiredLRPByProcessGuid(logger, processGuid)
 						return err
-					}, Timeout).ShouldNot(HaveOccurred())
+					}, PushTimeout).ShouldNot(HaveOccurred())
 
 					By("when everything has converged, we should be running the last intentionally started revision")
 					Eventually(func() string {
-						body, _ := Curl(testConfig.AppsDomain, appName)
+						body, _ := CurlAppRoot(appName)
 						return body
 					}, Timeout).Should(ContainSubstring("Hi, I'm Other Dora!"))
+
+					Eventually(func() string {
+						body, _ := CurlApp(appName, "/env/FOO")
+						return body
+					}, Timeout).Should(ContainSubstring("ng_bar"))
 				})
 			})
 		})
@@ -187,7 +209,7 @@ var _ = Describe("Syncing", func() {
 				Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
 				Eventually(func() string {
-					body, _ := Curl(testConfig.AppsDomain, appName)
+					body, _ := CurlAppRoot(appName)
 					return body
 				}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
 
@@ -264,7 +286,7 @@ var _ = Describe("Syncing", func() {
 				Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
 				Eventually(func() string {
-					body, _ := Curl(testConfig.AppsDomain, appName)
+					body, _ := CurlAppRoot(appName)
 					return body
 				}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
 
@@ -324,7 +346,7 @@ var _ = Describe("Syncing", func() {
 					Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
 					Eventually(func() string {
-						body, _ := Curl(testConfig.AppsDomain, appName)
+						body, _ := CurlAppRoot(appName)
 						return body
 					}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
 

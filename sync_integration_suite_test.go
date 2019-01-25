@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -225,8 +226,19 @@ func GetRouteGuid(appName string) string {
 	return routeGuid
 }
 
-func Curl(appsDomain, appName string) (string, int) {
-	resp, err := http.Get(fmt.Sprintf("http://%s.%s", appName, appsDomain))
+func CurlAppRoot(appName string) (string, int) {
+	resp, err := http.Get(fmt.Sprintf("http://%s.%s", appName, testConfig.AppsDomain))
+	Expect(err).ToNot(HaveOccurred())
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	Expect(err).ToNot(HaveOccurred())
+
+	return string(body), resp.StatusCode
+}
+
+func CurlApp(appName, path string) (string, int) {
+	resp, err := http.Get(fmt.Sprintf("http://%s.%s", appName, filepath.Join(testConfig.AppsDomain, path)))
 	Expect(err).ToNot(HaveOccurred())
 	defer resp.Body.Close()
 
