@@ -19,6 +19,14 @@ import (
 var _ = Describe("Syncing", func() {
 	Describe("Reconciling state between cc and diego", func() {
 		Describe("LRP Syncing", func() {
+			const BbsAppsDomain = "cf-apps"
+
+			AfterEach(func() {
+				domains, err := bbsClient.Domains(logger)
+				Expect(err).To(BeNil())
+				Expect(domains).To(ContainElement(BbsAppsDomain), "Freshness bump failed!")
+			})
+
 			It("restarts processes missing from diego", func() {
 				appName := generator.PrefixedRandomName("SITS", "APP")
 				Expect(cf.Cf("push", appName, "--no-start", "-d", testConfig.GetAppsDomain(), "-s", "cflinuxfs3", "-p", "fixtures/dora", "-b", "ruby_buildpack").Wait(Timeout)).To(Exit(0))
