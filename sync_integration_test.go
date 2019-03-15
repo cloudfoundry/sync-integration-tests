@@ -150,6 +150,7 @@ var _ = Describe("Syncing", func() {
 					Expect(cf.Cf("set-env", appName, "FOO", "og_bar").Wait(ShortTimeout)).To(Exit(0))
 					revisionsEnablePath := fmt.Sprintf("/v3/apps/%s/features/revisions", appGuid)
 					Expect(cf.Cf("curl", revisionsEnablePath, "-X", "PATCH", "-d", `{"enabled": true}`).Wait(ShortTimeout)).To(Exit(0))
+
 					Expect(cf.Cf("v3-restart", appName).Wait(PushTimeout)).To(Exit(0))
 
 					Eventually(func() string {
@@ -163,6 +164,9 @@ var _ = Describe("Syncing", func() {
 					}, Timeout).Should(ContainSubstring("og_bar"))
 
 					By("deploying other dora to be the last intentionally started revision")
+					webProcessGuid := GetCCProcessGuidsForType(appGuid, "web")[0]
+					newCommand := fmt.Sprintf(`{"command": "%s"}`, "TEST_VAR=real bundle exec rackup config.ru -p $PORT")
+					cf.Cf("curl", fmt.Sprintf("/v3/processes/%s", webProcessGuid), "-X", "PATCH", "-d", newCommand)
 					Expect(cf.Cf("v3-set-env", appName, "FOO", "ng_bar").Wait(ShortTimeout)).To(Exit(0))
 					Expect(cf.Cf("v3-push", appName, "-p", "fixtures/other-dora", "-b", "ruby_buildpack").Wait(PushTimeout)).To(Exit(0))
 
@@ -176,7 +180,15 @@ var _ = Describe("Syncing", func() {
 						return body
 					}, Timeout).Should(ContainSubstring("ng_bar"))
 
+					Eventually(func() string {
+						body, _ := CurlApp(appName, "/env/TEST_VAR")
+						return body
+					}, Timeout).Should(ContainSubstring("real"))
+
 					By("setting droplet back to OG dora and the env var back to og_bar")
+					webProcessGuid = GetCCProcessGuidsForType(appGuid, "web")[0]
+					newCommand = fmt.Sprintf(`{"command": "%s"}`, "TEST_VAR=fake bundle exec rackup config.ru -p $PORT")
+					cf.Cf("curl", fmt.Sprintf("/v3/processes/%s", webProcessGuid), "-X", "PATCH", "-d", newCommand)
 					Expect(cf.Cf("v3-set-env", appName, "FOO", "og_bar").Wait(ShortTimeout)).To(Exit(0))
 					Expect(cf.Cf("v3-set-droplet", appName, "-d", ogDoraGuid).Wait(ShortTimeout)).To(Exit(0))
 
@@ -198,6 +210,11 @@ var _ = Describe("Syncing", func() {
 						body, _ := CurlApp(appName, "/env/FOO")
 						return body
 					}, Timeout).Should(ContainSubstring("ng_bar"))
+
+					Eventually(func() string {
+						body, _ := CurlApp(appName, "/env/TEST_VAR")
+						return body
+					}, Timeout).Should(ContainSubstring("real"))
 				})
 			})
 		})

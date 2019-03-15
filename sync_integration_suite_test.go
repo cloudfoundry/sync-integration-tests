@@ -247,3 +247,27 @@ func CurlApp(appName, path string) (string, int) {
 
 	return string(body), resp.StatusCode
 }
+
+func GetCCProcessGuidsForType(appGuid string, processType string) []string {
+	processesPath := fmt.Sprintf("/v3/apps/%s/processes?types=%s", appGuid, processType)
+	session := cf.Cf("curl", processesPath).Wait()
+
+	processesJSON := struct {
+		Resources []struct {
+			Guid string `json:"guid"`
+		} `json:"resources"`
+	}{}
+	bytes := session.Wait().Out.Contents()
+	err := json.Unmarshal(bytes, &processesJSON)
+
+	guids := []string{}
+	if err != nil || len(processesJSON.Resources) == 0 {
+		return guids
+	}
+
+	for _, resource := range processesJSON.Resources {
+		guids = append(guids, resource.Guid)
+	}
+
+	return guids
+}
