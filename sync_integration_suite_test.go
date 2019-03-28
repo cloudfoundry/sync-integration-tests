@@ -51,7 +51,7 @@ var (
 	testConfig        config.Config
 	testSetup         *workflowhelpers.ReproducibleTestSuiteSetup
 
-	session *Session
+	portForwardingSession *Session
 )
 
 const (
@@ -75,13 +75,15 @@ func loadConfigAndSetVariables() {
 	err = testConfig.Validate()
 	Expect(err).NotTo(HaveOccurred())
 
-	os.Setenv("BOSH_CA_CERT", testConfig.BoshCACert)
-	os.Setenv("BOSH_CLIENT", testConfig.BoshClient)
-	os.Setenv("BOSH_CLIENT_SECRET", testConfig.BoshClientSecret)
-	os.Setenv("BOSH_ENVIRONMENT", testConfig.BoshEnvironment)
-	os.Setenv("BOSH_GW_USER", testConfig.BoshGWUser)
-	os.Setenv("BOSH_GW_HOST", testConfig.BoshGWHost)
-	os.Setenv("BOSH_GW_PRIVATE_KEY", testConfig.BoshGWPrivateKey)
+	if testConfig.PortForwardingScript == "" {
+		os.Setenv("BOSH_CA_CERT", testConfig.BoshCACert)
+		os.Setenv("BOSH_CLIENT", testConfig.BoshClient)
+		os.Setenv("BOSH_CLIENT_SECRET", testConfig.BoshClientSecret)
+		os.Setenv("BOSH_ENVIRONMENT", testConfig.BoshEnvironment)
+		os.Setenv("BOSH_GW_USER", testConfig.BoshGWUser)
+		os.Setenv("BOSH_GW_HOST", testConfig.BoshGWHost)
+		os.Setenv("BOSH_GW_PRIVATE_KEY", testConfig.BoshGWPrivateKey)
+	}
 }
 
 func TestSITSTests(t *testing.T) {
@@ -92,17 +94,22 @@ func TestSITSTests(t *testing.T) {
 var _ = SynchronizedBeforeSuite(func() []byte {
 	loadConfigAndSetVariables()
 
-	command := exec.Command(testConfig.BoshBinary,
-		"-d",
-		testConfig.BoshDeploymentName,
-		"ssh",
-		testConfig.APIInstance,
-		"--opts=-N",
-		"--opts=-L 8889:bbs.service.cf.internal:8889",
-		"--opts=-L 9001:copilot.service.cf.internal:9001",
-	)
+	var command *exec.Cmd
+	if testConfig.PortForwardingScript == "" {
+		command = exec.Command(testConfig.BoshBinary,
+			"-d",
+			testConfig.BoshDeploymentName,
+			"ssh",
+			testConfig.APIInstance,
+			"--opts=-N",
+			"--opts=-L 8889:bbs.service.cf.internal:8889",
+			"--opts=-L 9001:copilot.service.cf.internal:9001",
+		)
+	} else {
+		command = exec.Command(testConfig.PortForwardingScript)
+	}
 	var err error
-	session, err = Start(command, GinkgoWriter, GinkgoWriter)
+	portForwardingSession, err = Start(command, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred())
 
 	return nil
@@ -148,8 +155,8 @@ var _ = SynchronizedAfterSuite(func() {
 		testSetup.Teardown()
 	}
 }, func() {
-	if session != nil {
-		session.Kill()
+	if portForwardingSession != nil {
+		portForwardingSession.Kill()
 	}
 })
 
