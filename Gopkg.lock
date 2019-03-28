@@ -82,15 +82,13 @@
 
 [[projects]]
   branch = "update_org_name"
-  digest = "1:50b38143c73e7bf6c71a022c664d8a3825116262b7aa1b1f5675e23c81767eea"
+  digest = "1:34f8a3263b0a81c35269ae9ce0670244627c947cdce40e4312e12c4b9e2f5b6f"
   name = "github.com/cloudfoundry-incubator/cf-test-helpers"
   packages = [
     "cf",
     "commandreporter",
     "commandstarter",
     "generator",
-    "helpers",
-    "helpers/internal",
     "internal",
     "workflowhelpers",
     "workflowhelpers/internal",
@@ -354,7 +352,6 @@
     "code.cloudfoundry.org/lager/lagertest",
     "github.com/cloudfoundry-incubator/cf-test-helpers/cf",
     "github.com/cloudfoundry-incubator/cf-test-helpers/generator",
-    "github.com/cloudfoundry-incubator/cf-test-helpers/helpers",
     "github.com/cloudfoundry-incubator/cf-test-helpers/workflowhelpers",
     "github.com/onsi/ginkgo",
     "github.com/onsi/ginkgo/ginkgo",
