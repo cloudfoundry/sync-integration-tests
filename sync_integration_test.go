@@ -9,6 +9,7 @@ import (
 
 	"code.cloudfoundry.org/bbs/models"
 	"code.cloudfoundry.org/copilot/api"
+	"code.cloudfoundry.org/sync-integration-tests/helpers"
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	"github.com/cloudfoundry-incubator/cf-test-helpers/generator"
 	. "github.com/onsi/ginkgo"
@@ -215,6 +216,51 @@ var _ = Describe("Syncing", func() {
 						body, _ := CurlApp(appName, "/env/TEST_VAR")
 						return body
 					}, Timeout).Should(ContainSubstring("real"))
+				})
+			})
+
+			Describe("sidecars", func() {
+				BeforeEach(func() {
+					if !testConfig.RunSidecarTests {
+						Skip("skipping sidecar tests")
+					}
+				})
+				Context("when a lrp is deleted", func() {
+					It("restores its sidecar when it's restarted", func() {
+						appName := generator.PrefixedRandomName("SITS", "APP")
+
+						Expect(cf.Cf("push", appName, "--no-start", "-d", testConfig.GetAppsDomain(), "-s", "cflinuxfs3", "-p", "fixtures/dora", "-b", "ruby_buildpack").Wait(Timeout)).To(Exit(0))
+						appGUID := helpers.GetAppGuid(appName)
+						helpers.CreateSidecar("my_sidecar", []string{"web"}, "sleep 100000", appGUID)
+						Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
+
+						Eventually(func() string {
+							body, _ := CurlAppRoot(appName)
+							return body
+						}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
+
+						By("verify the sidecar is running")
+						session := cf.Cf("ssh", appName, "-c", "ps aux")
+						fmt.Println(session.Out.Contents())
+						Expect(cf.Cf("ssh", appName, "-c", "ps aux | grep sleep | grep -v grep").Wait(PushTimeout)).To(Exit(0))
+
+						processGuid := GetProcessGuid(appName)
+						DeleteProcessGuidFromDiego(processGuid)
+
+						Eventually(func() error {
+							_, err := bbsClient.DesiredLRPByProcessGuid(logger, processGuid)
+							return err
+						}, PushTimeout).ShouldNot(HaveOccurred())
+
+						By("Verify the LRP is running again")
+						Eventually(func() string {
+							body, _ := CurlAppRoot(appName)
+							return body
+						}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
+
+						By("verify the sidecar is running after the LRP restarted")
+						Expect(cf.Cf("ssh", appName, "-c", "ps aux | grep sleep | grep -v grep").Wait(PushTimeout)).To(Exit(0))
+					})
 				})
 			})
 		})

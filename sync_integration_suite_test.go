@@ -47,6 +47,7 @@ var (
 	copilotClient     copilot.CloudControllerClient
 	runRouteTests     bool
 	runRevisionsTests bool
+	runSidecarTests   bool
 	logger            lager.Logger
 	testConfig        config.Config
 	testSetup         *workflowhelpers.ReproducibleTestSuiteSetup

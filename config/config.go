@@ -30,6 +30,7 @@ type Config struct {
 	BoshGWHost           string `json:"bosh_gw_host"`
 	BoshGWPrivateKey     string `json:"bosh_gw_private_key"`
 	RunRevisionsTests    bool   `json:"run_revisions_tests"`
+	RunSidecarTests      bool   `json:"run_sidecar_tests"`
 	PortForwardingScript string `json:"port_forwarding_script"`
 }
 
