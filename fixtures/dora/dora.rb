@@ -51,7 +51,7 @@ class Dora < Sinatra::Base
   end
 
   get '/sigterm' do
-    "Available sigterms #{`man -k signal | grep list`}"
+    "Available sigterms #{Signal.list.keys}"
   end
 
   get '/dpkg/:package' do
@@ -99,6 +99,10 @@ class Dora < Sinatra::Base
 
   get '/env' do
     ENV.to_hash.to_s
+  end
+
+  get '/env.json' do
+    ENV.to_hash.to_json
   end
 
   get '/myip' do
