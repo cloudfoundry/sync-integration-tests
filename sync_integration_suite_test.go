@@ -59,7 +59,7 @@ const (
 	BBSAddress      = "https://127.0.0.1:8889"
 	CopilotAddress  = "127.0.0.1:9001"
 	ShortTimeout    = 10 * time.Second
-	Timeout         = 60 * time.Second
+	Timeout         = 2 * time.Minute
 	PushTimeout     = 2 * time.Minute
 	PollingInterval = 5 * time.Second
 )
