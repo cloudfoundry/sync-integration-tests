@@ -60,7 +60,7 @@ const (
 	CopilotAddress  = "127.0.0.1:9001"
 	ShortTimeout    = 10 * time.Second
 	Timeout         = 60 * time.Second
-	PushTimeout     = 2 * time.Minute
+	PushTimeout     = 3 * time.Minute
 	PollingInterval = 5 * time.Second
 )
 
