@@ -34,6 +34,10 @@ type relationship struct {
 	Route map[string]string `json:"route"`
 }
 
+type destination struct {
+	App map[string]string `json:"app"`
+}
+
 type routeList struct {
 	Resources []struct {
 		Metadata struct {

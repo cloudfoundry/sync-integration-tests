@@ -335,24 +335,22 @@ var _ = Describe("Syncing", func() {
 				routeGUID := routeJSON.Resources[0].Metadata.Guid
 
 				body := struct {
-					Relationship relationship `json:"relationships"`
-					Weight       int          `json:"weight"`
+					Destination []destination `json:"destinations"`
 				}{
-					Relationship: relationship{
-						App: map[string]string{
-							"guid": appGUID,
-						},
-						Route: map[string]string{
-							"guid": routeGUID,
+					Destination: []destination{
+						{
+							App: map[string]string{
+								"guid": appGUID,
+							},
 						},
 					},
-					Weight: 2,
 				}
 
 				bodyJSON, err := json.Marshal(body)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(cf.Cf("curl", "/v3/route_mappings", "-H", "Content-Type: application/json", "-X", "POST", "-d", fmt.Sprintf(`'%s'`, string(bodyJSON))).Wait(Timeout)).To(Exit(0))
+				insertDestinationPath := fmt.Sprintf("/v3/routes/%s/destinations", routeGUID)
+				Expect(cf.Cf("curl", "-f", insertDestinationPath, "-H", "Content-Type: application/json", "-X", "POST", "-d", fmt.Sprintf(`'%s'`, string(bodyJSON))).Wait(Timeout)).To(Exit(0))
 
 				Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
