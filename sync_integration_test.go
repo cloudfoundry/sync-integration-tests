@@ -342,6 +342,7 @@ var _ = Describe("Syncing", func() {
 							App: map[string]string{
 								"guid": appGUID,
 							},
+							Weight: 2,
 						},
 					},
 				}

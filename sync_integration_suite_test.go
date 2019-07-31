@@ -35,7 +35,8 @@ type relationship struct {
 }
 
 type destination struct {
-	App map[string]string `json:"app"`
+	App    map[string]string `json:"app"`
+	Weight int               `json:"weight"`
 }
 
 type routeList struct {
