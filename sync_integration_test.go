@@ -329,7 +329,7 @@ var _ = Describe("Syncing", func() {
 				appGUID := GetAppGuid(appName)
 
 				getRoutePath := fmt.Sprintf("/v2/routes?q=host:%s", appName)
-				routeBody := cf.Cf("curl", getRoutePath).Wait().Out.Contents()
+				routeBody := cf.Cf("curl", getRoutePath).Wait(Timeout).Out.Contents()
 
 				var routeJSON routeList
 				json.Unmarshal([]byte(routeBody), &routeJSON)
