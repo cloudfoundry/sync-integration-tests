@@ -8,6 +8,7 @@ set -eu
 : "${USE_CF_DEPLOYMENT_VARS:="false"}"
 : "${USE_CREDHUB:="false"}"
 : "${RUN_REVISIONS_TESTS:="false"}"
+: "${FLAKE_ATTEMPTS:=1}"
 
 get_from_credhub() {
   set +x
@@ -77,7 +78,7 @@ mkdir -p "${GOPATH}/src/code.cloudfoundry.org"
 cp -a sync-integration-tests "${GOPATH}/src/code.cloudfoundry.org"
 
 pushd "${GOPATH}/src/code.cloudfoundry.org/sync-integration-tests" > /dev/null
-  ginkgo -nodes="${NODES}"
+  ginkgo -nodes="${NODES}" --flakeAttempts="${FLAKE_ATTEMPTS}"
 popd > /dev/null
 
 exit 0
