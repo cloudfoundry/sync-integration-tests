@@ -75,8 +75,6 @@ main() {
   "cf_apps_domain": "${CF_APPS_DOMAIN}",
   "bbs_client_cert": "${bbs_cert_path}",
   "bbs_client_key": "${bbs_key_path}",
-  "copilot_client_cert": "${copilot_client_cert_path}",
-  "copilot_client_key": "${copilot_client_key_path}",
   "bosh_binary": "${BOSH_BINARY}",
   "bosh_api_instance": "${BOSH_API_INSTANCE}",
   "bosh_deployment_name": "${BOSH_DEPLOYMENT_NAME}",
@@ -92,9 +90,8 @@ EOF
     set -x
   popd > /dev/null
 
-  cd $(dirname "${BASH_SOURCE[0]}")/..
+  cd $(dirname "${BASH_SOURCE[0]}")
 
-  go install code.cloudfoundry.org/sync-integration-tests/vendor/github.com/onsi/ginkgo/ginkgo
   ginkgo -r -nodes=3 -randomizeAllSpecs
 
   rm -r "${config_dir}"

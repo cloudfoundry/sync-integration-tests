@@ -30,7 +30,7 @@ var _ = Describe("Syncing", func() {
 
 			It("restarts processes missing from diego", func() {
 				appName := generator.PrefixedRandomName("SITS", "APP")
-				Expect(cf.Cf("push", appName, "--no-start", "-d", testConfig.GetAppsDomain(), "-s", "cflinuxfs3", "-p", "fixtures/dora", "-b", "ruby_buildpack").Wait(Timeout)).To(Exit(0))
+				Expect(cf.Cf("push", appName, "--no-start", "-s", "cflinuxfs3", "-p", "fixtures/dora", "-b", "ruby_buildpack").Wait(Timeout)).To(Exit(0))
 				Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
 				Eventually(func() string {
@@ -49,7 +49,7 @@ var _ = Describe("Syncing", func() {
 
 			It("refreshes stale processes", func() {
 				appName := generator.PrefixedRandomName("SITS", "APP")
-				Expect(cf.Cf("push", appName, "--no-start", "-d", testConfig.GetAppsDomain(), "-s", "cflinuxfs3", "-p", "fixtures/dora", "-b", "ruby_buildpack").Wait(Timeout)).To(Exit(0))
+				Expect(cf.Cf("push", appName, "--no-start", "-s", "cflinuxfs3", "-p", "fixtures/dora", "-b", "ruby_buildpack").Wait(Timeout)).To(Exit(0))
 				Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
 				Eventually(func() string {
@@ -91,7 +91,7 @@ var _ = Describe("Syncing", func() {
 
 			It("cancels processes that should not be running according to CC", func() {
 				appName := generator.PrefixedRandomName("SITS", "APP")
-				Expect(cf.Cf("push", appName, "--no-start", "-d", testConfig.GetAppsDomain(), "-s", "cflinuxfs3", "-p", "fixtures/dora", "-b", "ruby_buildpack").Wait(Timeout)).To(Exit(0))
+				Expect(cf.Cf("push", appName, "--no-start", "-s", "cflinuxfs3", "-p", "fixtures/dora", "-b", "ruby_buildpack").Wait(Timeout)).To(Exit(0))
 				Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
 				Eventually(func() string {
@@ -229,7 +229,7 @@ var _ = Describe("Syncing", func() {
 					It("restores its sidecar when it's restarted", func() {
 						appName := generator.PrefixedRandomName("SITS", "APP")
 
-						Expect(cf.Cf("push", appName, "--no-start", "-d", testConfig.GetAppsDomain(), "-s", "cflinuxfs3", "-p", "fixtures/dora", "-b", "ruby_buildpack").Wait(Timeout)).To(Exit(0))
+						Expect(cf.Cf("push", appName, "--no-start", "-s", "cflinuxfs3", "-p", "fixtures/dora", "-b", "ruby_buildpack").Wait(Timeout)).To(Exit(0))
 						appGUID := helpers.GetAppGuid(appName)
 						helpers.CreateSidecar("my_sidecar", []string{"web"}, "sleep 100000", appGUID)
 						Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
@@ -276,7 +276,7 @@ var _ = Describe("Syncing", func() {
 		Describe("Route syncing", func() {
 			It("Adds missing routes to copilot", func() {
 				appName := generator.PrefixedRandomName("SITS", "APP")
-				Expect(cf.Cf("push", appName, "--no-start", "-d", testConfig.GetAppsDomain(), "-s", "cflinuxfs3", "-p", "fixtures/dora", "-b", "ruby_buildpack", "--hostname", appName).Wait(Timeout)).To(Exit(0))
+				Expect(cf.Cf("push", appName, "--no-start", "-s", "cflinuxfs3", "-p", "fixtures/dora", "-b", "ruby_buildpack", "--hostname", appName).Wait(Timeout)).To(Exit(0))
 				Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
 				Eventually(func() string {
@@ -413,7 +413,7 @@ var _ = Describe("Syncing", func() {
 			Describe("CAPIDiegoProcessAssociation syncing", func() {
 				It("Adds missing CAPI Diego Process Associations to copilot", func() {
 					appName := generator.PrefixedRandomName("SITS", "APP")
-					Expect(cf.Cf("push", appName, "--no-start", "-d", testConfig.GetAppsDomain(), "-s", "cflinuxfs3", "-p", "fixtures/dora", "-b", "ruby_buildpack").Wait(Timeout)).To(Exit(0))
+					Expect(cf.Cf("push", appName, "--no-start", "-s", "cflinuxfs3", "-p", "fixtures/dora", "-b", "ruby_buildpack").Wait(Timeout)).To(Exit(0))
 					Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
 					Eventually(func() string {
