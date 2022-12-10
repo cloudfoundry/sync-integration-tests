@@ -152,7 +152,7 @@ var _ = Describe("Syncing", func() {
 					revisionsEnablePath := fmt.Sprintf("/v3/apps/%s/features/revisions", appGuid)
 					Expect(cf.Cf("curl", revisionsEnablePath, "-X", "PATCH", "-d", `{"enabled": true}`).Wait(ShortTimeout)).To(Exit(0))
 
-					Expect(cf.Cf("v3-restart", appName).Wait(PushTimeout)).To(Exit(0))
+					Expect(cf.Cf("restart", appName).Wait(PushTimeout)).To(Exit(0))
 
 					Eventually(func() string {
 						body, _ := CurlAppRoot(appName)
@@ -168,8 +168,8 @@ var _ = Describe("Syncing", func() {
 					webProcessGuid := GetCCProcessGuidsForType(appGuid, "web")[0]
 					newCommand := fmt.Sprintf(`{"command": "%s"}`, "TEST_VAR=real bundle exec rackup config.ru -p $PORT")
 					cf.Cf("curl", fmt.Sprintf("/v3/processes/%s", webProcessGuid), "-X", "PATCH", "-d", newCommand)
-					Expect(cf.Cf("v3-set-env", appName, "FOO", "ng_bar").Wait(ShortTimeout)).To(Exit(0))
-					Expect(cf.Cf("v3-push", appName, "-p", "fixtures/other-dora", "-b", "ruby_buildpack").Wait(PushTimeout)).To(Exit(0))
+					Expect(cf.Cf("set-env", appName, "FOO", "ng_bar").Wait(ShortTimeout)).To(Exit(0))
+					Expect(cf.Cf("push", appName, "-p", "fixtures/other-dora", "-b", "ruby_buildpack").Wait(PushTimeout)).To(Exit(0))
 
 					Eventually(func() string {
 						body, _ := CurlAppRoot(appName)
@@ -190,8 +190,8 @@ var _ = Describe("Syncing", func() {
 					webProcessGuid = GetCCProcessGuidsForType(appGuid, "web")[0]
 					newCommand = fmt.Sprintf(`{"command": "%s"}`, "TEST_VAR=fake bundle exec rackup config.ru -p $PORT")
 					cf.Cf("curl", fmt.Sprintf("/v3/processes/%s", webProcessGuid), "-X", "PATCH", "-d", newCommand)
-					Expect(cf.Cf("v3-set-env", appName, "FOO", "og_bar").Wait(ShortTimeout)).To(Exit(0))
-					Expect(cf.Cf("v3-set-droplet", appName, "-d", ogDoraGuid).Wait(ShortTimeout)).To(Exit(0))
+					Expect(cf.Cf("set-env", appName, "FOO", "og_bar").Wait(ShortTimeout)).To(Exit(0))
+					Expect(cf.Cf("set-droplet", appName, "-d", ogDoraGuid).Wait(ShortTimeout)).To(Exit(0))
 
 					processGuid := GetProcessGuid(appName)
 					DeleteProcessGuidFromDiego(processGuid)
