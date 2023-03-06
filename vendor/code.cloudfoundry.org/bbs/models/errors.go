@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 )
@@ -43,6 +44,23 @@ func (err *Error) Equal(other error) bool {
 
 func (err *Error) Error() string {
 	return err.GetMessage()
+}
+
+func (d *Error_Type) UnmarshalJSON(data []byte) error {
+	var name string
+	if err := json.Unmarshal(data, &name); err != nil {
+		return err
+	}
+
+	if v, found := Error_Type_value[name]; found {
+		*d = Error_Type(v)
+		return nil
+	}
+	return fmt.Errorf("invalid presence: %s", name)
+}
+
+func (d Error_Type) MarshalJSON() ([]byte, error) {
+	return json.Marshal(d.String())
 }
 
 var (
@@ -111,29 +129,19 @@ var (
 		Message: "cannot remove actual LRP",
 	}
 
-	ErrActualLRPCannotBeStopped = &Error{
-		Type:    Error_ActualLRPCannotBeStopped,
-		Message: "cannot stop actual LRP",
-	}
-
 	ErrActualLRPCannotBeUnclaimed = &Error{
 		Type:    Error_ActualLRPCannotBeUnclaimed,
 		Message: "cannot unclaim actual LRP",
 	}
 
-	ErrActualLRPCannotBeEvacuated = &Error{
-		Type:    Error_ActualLRPCannotBeEvacuated,
-		Message: "cannot evacuate actual LRP",
-	}
-
-	ErrDesiredLRPCannotBeUpdated = &Error{
-		Type:    Error_DesiredLRPCannotBeUpdated,
-		Message: "cannot update desired LRP",
-	}
-
 	ErrGUIDGeneration = &Error{
 		Type:    Error_GUIDGeneration,
 		Message: "cannot generate random guid",
+	}
+
+	ErrLockCollision = &Error{
+		Type:    Error_LockCollision,
+		Message: "lock already exists",
 	}
 )
 
@@ -153,6 +161,7 @@ func (err ErrInvalidModification) Error() string {
 	return "attempt to make invalid change to field: " + err.InvalidField
 }
 
+// DEPRECATED
 var ErrActualLRPGroupInvalid = errors.New("ActualLRPGroup invalid")
 
 func NewTaskTransitionError(from, to Task_State) *Error {

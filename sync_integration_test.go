@@ -77,8 +77,12 @@ var _ = Describe("Syncing", func() {
 				instances := int32(2)
 				bogusAnnotation := "bogus"
 				desiredLRPUpdate := models.DesiredLRPUpdate{
-					Instances:  &instances,
-					Annotation: &bogusAnnotation,
+					OptionalInstances: &models.DesiredLRPUpdate_Instances{
+						Instances: instances,
+					},
+					OptionalAnnotation: &models.DesiredLRPUpdate_Annotation{
+						Annotation: bogusAnnotation,
+					},
 				}
 				Expect(bbsClient.UpdateDesiredLRP(logger, processGuid, &desiredLRPUpdate)).To(Succeed())
 

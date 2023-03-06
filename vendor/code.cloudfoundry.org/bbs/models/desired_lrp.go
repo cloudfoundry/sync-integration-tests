@@ -1,6 +1,8 @@
 package models
 
 import (
+	bytes "bytes"
+	"encoding/json"
 	"net/url"
 	"regexp"
 	"time"
@@ -9,6 +11,7 @@ import (
 )
 
 const PreloadedRootFSScheme = "preloaded"
+const PreloadedOCIRootFSScheme = "preloaded+layer"
 
 var processGuidPattern = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 
@@ -69,6 +72,14 @@ func NewDesiredLRP(schedInfo DesiredLRPSchedulingInfo, runInfo DesiredLRPRunInfo
 		VolumeMounts:                  runInfo.VolumeMounts,
 		Network:                       runInfo.Network,
 		PlacementTags:                 schedInfo.PlacementTags,
+		CertificateProperties:         runInfo.CertificateProperties,
+		ImageUsername:                 runInfo.ImageUsername,
+		ImagePassword:                 runInfo.ImagePassword,
+		CheckDefinition:               runInfo.CheckDefinition,
+		ImageLayers:                   runInfo.ImageLayers,
+		MetricTags:                    runInfo.MetricTags,
+		Sidecars:                      runInfo.Sidecars,
+		LogRateLimit:                  runInfo.LogRateLimit,
 	}
 }
 
@@ -99,6 +110,27 @@ func (desiredLRP *DesiredLRP) AddRunInfo(runInfo DesiredLRPRunInfo) {
 	desiredLRP.TrustedSystemCertificatesPath = runInfo.TrustedSystemCertificatesPath
 	desiredLRP.VolumeMounts = runInfo.VolumeMounts
 	desiredLRP.Network = runInfo.Network
+	desiredLRP.CheckDefinition = runInfo.CheckDefinition
+}
+
+func (*DesiredLRP) Version() format.Version {
+	return format.V3
+}
+
+func (d *DesiredLRP) actionsFromCachedDependencies() []ActionInterface {
+	actions := make([]ActionInterface, len(d.CachedDependencies))
+	for i := range d.CachedDependencies {
+		cacheDependency := d.CachedDependencies[i]
+		actions[i] = &DownloadAction{
+			Artifact:  cacheDependency.Name,
+			From:      cacheDependency.From,
+			To:        cacheDependency.To,
+			CacheKey:  cacheDependency.CacheKey,
+			LogSource: cacheDependency.LogSource,
+			User:      d.LegacyDownloadUser,
+		}
+	}
+	return actions
 }
 
 func newDesiredLRPWithCachedDependenciesAsSetupActions(d *DesiredLRP) *DesiredLRP {
@@ -118,31 +150,58 @@ func newDesiredLRPWithCachedDependenciesAsSetupActions(d *DesiredLRP) *DesiredLR
 	return d
 }
 
-func (*DesiredLRP) Version() format.Version {
-	return format.V2
+func downgradeDesiredLRPV2ToV1(d *DesiredLRP) *DesiredLRP {
+	return d
+}
+
+func downgradeDesiredLRPV1ToV0(d *DesiredLRP) *DesiredLRP {
+	d.Action = d.Action.SetDeprecatedTimeoutNs()
+	d.Setup = d.Setup.SetDeprecatedTimeoutNs()
+	d.Monitor = d.Monitor.SetDeprecatedTimeoutNs()
+	d.DeprecatedStartTimeoutS = uint32(d.StartTimeoutMs) / 1000
+	return newDesiredLRPWithCachedDependenciesAsSetupActions(d)
+}
+
+func downgradeDesiredLRPV3ToV2(d *DesiredLRP) *DesiredLRP {
+	layers := ImageLayers(d.ImageLayers)
+
+	d.CachedDependencies = append(layers.ToCachedDependencies(), d.CachedDependencies...)
+	d.Setup = layers.ToDownloadActions(d.LegacyDownloadUser, d.Setup)
+	d.ImageLayers = nil
+
+	return d
+}
+
+var downgrades = []func(*DesiredLRP) *DesiredLRP{
+	downgradeDesiredLRPV1ToV0,
+	downgradeDesiredLRPV2ToV1,
+	downgradeDesiredLRPV3ToV2,
 }
 
 func (d *DesiredLRP) VersionDownTo(v format.Version) *DesiredLRP {
-
 	versionedLRP := d.Copy()
 
-	switch v {
-
-	case format.V1:
-		versionedLRP.Action.SetDeprecatedTimeoutNs()
-		versionedLRP.Setup.SetDeprecatedTimeoutNs()
-		versionedLRP.Monitor.SetDeprecatedTimeoutNs()
-		versionedLRP.DeprecatedStartTimeoutS = uint32(versionedLRP.StartTimeoutMs) / 1000
-		return versionedLRP
-	case format.V0:
-		versionedLRP.Action.SetDeprecatedTimeoutNs()
-		versionedLRP.Setup.SetDeprecatedTimeoutNs()
-		versionedLRP.Monitor.SetDeprecatedTimeoutNs()
-		versionedLRP.DeprecatedStartTimeoutS = uint32(versionedLRP.StartTimeoutMs) / 1000
-		return newDesiredLRPWithCachedDependenciesAsSetupActions(versionedLRP)
-	default:
-		return versionedLRP
+	for version := d.Version(); version > v; version-- {
+		versionedLRP = downgrades[version-1](versionedLRP)
 	}
+
+	return versionedLRP
+}
+
+func (d *DesiredLRP) PopulateMetricsGuid() *DesiredLRP {
+	sourceId, sourceIDIsSet := d.MetricTags["source_id"]
+	switch {
+	case sourceIDIsSet && d.MetricsGuid == "":
+		d.MetricsGuid = sourceId.Static
+	case !sourceIDIsSet && d.MetricsGuid != "":
+		if d.MetricTags == nil {
+			d.MetricTags = make(map[string]*MetricTagValue)
+		}
+		d.MetricTags["source_id"] = &MetricTagValue{
+			Static: d.MetricsGuid,
+		}
+	}
+	return d
 }
 
 func (d *DesiredLRP) DesiredLRPKey() DesiredLRPKey {
@@ -191,6 +250,7 @@ func (d *DesiredLRP) DesiredLRPRunInfo(createdAt time.Time) DesiredLRPRunInfo {
 	for i := range d.EgressRules {
 		egressRules[i] = *d.EgressRules[i]
 	}
+
 	return NewDesiredLRPRunInfo(
 		d.DesiredLRPKey(),
 		createdAt,
@@ -210,6 +270,14 @@ func (d *DesiredLRP) DesiredLRPRunInfo(createdAt time.Time) DesiredLRPRunInfo {
 		d.TrustedSystemCertificatesPath,
 		d.VolumeMounts,
 		d.Network,
+		d.CertificateProperties,
+		d.ImageUsername,
+		d.ImagePassword,
+		d.CheckDefinition,
+		d.ImageLayers,
+		d.MetricTags,
+		d.Sidecars,
+		d.LogRateLimit,
 	)
 }
 
@@ -218,35 +286,11 @@ func (d *DesiredLRP) Copy() *DesiredLRP {
 	return &newDesired
 }
 
-func (d *DesiredLRP) CreateComponents(createdAt time.Time) (DesiredLRPSchedulingInfo, DesiredLRPRunInfo) {
-	return d.DesiredLRPSchedulingInfo(), d.DesiredLRPRunInfo(createdAt)
-}
-
-func (d *DesiredLRP) actionsFromCachedDependencies() []ActionInterface {
-	actions := make([]ActionInterface, len(d.CachedDependencies))
-	for i := range d.CachedDependencies {
-		cacheDependency := d.CachedDependencies[i]
-		actions[i] = &DownloadAction{
-			Artifact:  cacheDependency.Name,
-			From:      cacheDependency.From,
-			To:        cacheDependency.To,
-			CacheKey:  cacheDependency.CacheKey,
-			LogSource: cacheDependency.LogSource,
-			User:      d.LegacyDownloadUser,
-		}
-	}
-	return actions
-}
-
 func (desired DesiredLRP) Validate() error {
 	var validationError ValidationError
 
 	if desired.GetDomain() == "" {
 		validationError = validationError.Append(ErrInvalidField{"domain"})
-	}
-
-	if !processGuidPattern.MatchString(desired.GetProcessGuid()) {
-		validationError = validationError.Append(ErrInvalidField{"process_guid"})
 	}
 
 	if desired.GetRootFs() == "" {
@@ -258,33 +302,8 @@ func (desired DesiredLRP) Validate() error {
 		validationError = validationError.Append(ErrInvalidField{"rootfs"})
 	}
 
-	if desired.Setup != nil {
-		if err := desired.Setup.Validate(); err != nil {
-			validationError = validationError.Append(ErrInvalidField{"setup"})
-			validationError = validationError.Append(err)
-		}
-	}
-
-	if desired.Action == nil {
-		validationError = validationError.Append(ErrInvalidActionType)
-	} else if err := desired.Action.Validate(); err != nil {
-		validationError = validationError.Append(ErrInvalidField{"action"})
-		validationError = validationError.Append(err)
-	}
-
-	if desired.Monitor != nil {
-		if err := desired.Monitor.Validate(); err != nil {
-			validationError = validationError.Append(ErrInvalidField{"monitor"})
-			validationError = validationError.Append(err)
-		}
-	}
-
 	if desired.GetInstances() < 0 {
 		validationError = validationError.Append(ErrInvalidField{"instances"})
-	}
-
-	if desired.GetCpuWeight() > 100 {
-		validationError = validationError.Append(ErrInvalidField{"cpu_weight"})
 	}
 
 	if desired.GetMemoryMb() < 0 {
@@ -293,6 +312,12 @@ func (desired DesiredLRP) Validate() error {
 
 	if desired.GetDiskMb() < 0 {
 		validationError = validationError.Append(ErrInvalidField{"disk_mb"})
+	}
+
+	if limit := desired.GetLogRateLimit(); limit != nil {
+		if limit.GetBytesPerSecond() < -1 {
+			validationError = validationError.Append(ErrInvalidField{"log_rate_limit_bytes_per_second"})
+		}
 	}
 
 	if len(desired.GetAnnotation()) > maximumAnnotationLength {
@@ -314,21 +339,9 @@ func (desired DesiredLRP) Validate() error {
 		}
 	}
 
-	for _, rule := range desired.EgressRules {
-		err := rule.Validate()
-		if err != nil {
-			validationError = validationError.Append(ErrInvalidField{"egress_rules"})
-			validationError = validationError.Append(err)
-		}
-	}
-
-	err = validateCachedDependencies(desired.CachedDependencies, desired.LegacyDownloadUser)
-	if err != nil {
-		validationError = validationError.Append(err)
-	}
-
-	for _, mount := range desired.VolumeMounts {
-		validationError = validationError.Check(mount)
+	runInfoErrors := desired.DesiredLRPRunInfo(time.Now()).Validate()
+	if runInfoErrors != nil {
+		validationError = validationError.Append(runInfoErrors)
 	}
 
 	return validationError.ToError()
@@ -356,7 +369,116 @@ func (desired *DesiredLRPUpdate) Validate() error {
 		}
 	}
 
+	err := validateMetricTags(desired.MetricTags, "")
+	if err != nil {
+		validationError = validationError.Append(ErrInvalidField{"metric_tags"})
+		validationError = validationError.Append(err)
+	}
+
 	return validationError.ToError()
+}
+
+func (desired *DesiredLRPUpdate) SetInstances(instances int32) {
+	desired.OptionalInstances = &DesiredLRPUpdate_Instances{
+		Instances: instances,
+	}
+}
+
+func (desired DesiredLRPUpdate) InstancesExists() bool {
+	_, ok := desired.GetOptionalInstances().(*DesiredLRPUpdate_Instances)
+	return ok
+}
+
+func (desired *DesiredLRPUpdate) SetAnnotation(annotation string) {
+	desired.OptionalAnnotation = &DesiredLRPUpdate_Annotation{
+		Annotation: annotation,
+	}
+}
+
+func (desired DesiredLRPUpdate) AnnotationExists() bool {
+	_, ok := desired.GetOptionalAnnotation().(*DesiredLRPUpdate_Annotation)
+	return ok
+}
+
+func (desired DesiredLRPUpdate) IsRoutesGroupUpdated(routes *Routes, routerGroup string) bool {
+	if desired.Routes == nil {
+		return false
+	}
+
+	if routes == nil {
+		return true
+	}
+
+	desiredRoutes, desiredRoutesPresent := (*desired.Routes)[routerGroup]
+	requestRoutes, requestRoutesPresent := (*routes)[routerGroup]
+	if desiredRoutesPresent != requestRoutesPresent {
+		return true
+	}
+
+	if desiredRoutesPresent && requestRoutesPresent {
+		return !bytes.Equal(*desiredRoutes, *requestRoutes)
+	}
+
+	return true
+}
+
+func (desired DesiredLRPUpdate) IsMetricTagsUpdated(existingTags map[string]*MetricTagValue) bool {
+	if desired.MetricTags == nil {
+		return false
+	}
+	if len(desired.MetricTags) != len(existingTags) {
+		return true
+	}
+	for k, v := range existingTags {
+		updateTag, ok := desired.MetricTags[k]
+		if !ok {
+			return true
+		}
+		if updateTag.Static != v.Static || updateTag.Dynamic != v.Dynamic {
+			return true
+		}
+	}
+	return false
+}
+
+type internalDesiredLRPUpdate struct {
+	Instances  *int32                     `json:"instances,omitempty"`
+	Routes     *Routes                    `json:"routes,omitempty"`
+	Annotation *string                    `json:"annotation,omitempty"`
+	MetricTags map[string]*MetricTagValue `json:"metric_tags,omitempty"`
+}
+
+func (desired *DesiredLRPUpdate) UnmarshalJSON(data []byte) error {
+	var update internalDesiredLRPUpdate
+	if err := json.Unmarshal(data, &update); err != nil {
+		return err
+	}
+
+	if update.Instances != nil {
+		desired.SetInstances(*update.Instances)
+	}
+	desired.Routes = update.Routes
+	if update.Annotation != nil {
+		desired.SetAnnotation(*update.Annotation)
+	}
+	desired.MetricTags = update.MetricTags
+
+	return nil
+}
+
+func (desired DesiredLRPUpdate) MarshalJSON() ([]byte, error) {
+	var update internalDesiredLRPUpdate
+	if desired.InstancesExists() {
+		i := desired.GetInstances()
+		update.Instances = &i
+	}
+	update.Routes = desired.Routes
+	if desired.AnnotationExists() {
+		a := desired.GetAnnotation()
+		update.Annotation = &a
+	}
+	update.MetricTags = desired.MetricTags
+	return json.Marshal(update)
 }
 
 func NewDesiredLRPKey(processGuid, domain, logGuid string) DesiredLRPKey {
@@ -403,14 +525,14 @@ func NewDesiredLRPSchedulingInfo(
 }
 
 func (s *DesiredLRPSchedulingInfo) ApplyUpdate(update *DesiredLRPUpdate) {
-	if update.Instances != nil {
-		s.Instances = *update.Instances
+	if update.InstancesExists() {
+		s.Instances = update.GetInstances()
 	}
 	if update.Routes != nil {
 		s.Routes = *update.Routes
 	}
-	if update.Annotation != nil {
-		s.Annotation = *update.Annotation
+	if update.AnnotationExists() {
+		s.Annotation = update.GetAnnotation()
 	}
 	s.ModificationTag.Increment()
 }
@@ -420,19 +542,19 @@ func (*DesiredLRPSchedulingInfo) Version() format.Version {
 }
 
 func (s DesiredLRPSchedulingInfo) Validate() error {
-	var ve ValidationError
+	var validationError ValidationError
 
-	ve = ve.Check(s.DesiredLRPKey, s.DesiredLRPResource, s.Routes)
+	validationError = validationError.Check(s.DesiredLRPKey, s.DesiredLRPResource, s.Routes)
 
 	if s.GetInstances() < 0 {
-		ve = ve.Append(ErrInvalidField{"instances"})
+		validationError = validationError.Append(ErrInvalidField{"instances"})
 	}
 
 	if len(s.GetAnnotation()) > maximumAnnotationLength {
-		ve = ve.Append(ErrInvalidField{"annotation"})
+		validationError = validationError.Append(ErrInvalidField{"annotation"})
 	}
 
-	return ve.ToError()
+	return validationError.ToError()
 }
 
 func NewDesiredLRPResource(memoryMb, diskMb, maxPids int32, rootFs string) DesiredLRPResource {
@@ -486,6 +608,13 @@ func NewDesiredLRPRunInfo(
 	trustedSystemCertificatesPath string,
 	volumeMounts []*VolumeMount,
 	network *Network,
+	certificateProperties *CertificateProperties,
+	imageUsername, imagePassword string,
+	checkDefinition *CheckDefinition,
+	imageLayers []*ImageLayer,
+	metricTags map[string]*MetricTagValue,
+	sidecars []*Sidecar,
+	logRateLimit *LogRateLimit,
 ) DesiredLRPRunInfo {
 	return DesiredLRPRunInfo{
 		DesiredLRPKey:                 key,
@@ -506,43 +635,117 @@ func NewDesiredLRPRunInfo(
 		TrustedSystemCertificatesPath: trustedSystemCertificatesPath,
 		VolumeMounts:                  volumeMounts,
 		Network:                       network,
+		CertificateProperties:         certificateProperties,
+		ImageUsername:                 imageUsername,
+		ImagePassword:                 imagePassword,
+		CheckDefinition:               checkDefinition,
+		ImageLayers:                   imageLayers,
+		MetricTags:                    metricTags,
+		Sidecars:                      sidecars,
+		LogRateLimit:                  logRateLimit,
 	}
 }
 
 func (runInfo DesiredLRPRunInfo) Validate() error {
-	var ve ValidationError
+	var validationError ValidationError
 
-	ve = ve.Check(
-		runInfo.DesiredLRPKey,
-		runInfo.Setup,
-		runInfo.Action,
-		runInfo.Monitor,
-	)
+	validationError = validationError.Check(runInfo.DesiredLRPKey)
+
+	if runInfo.Setup != nil {
+		if err := runInfo.Setup.Validate(); err != nil {
+			validationError = validationError.Append(ErrInvalidField{"setup"})
+			validationError = validationError.Append(err)
+		}
+	}
+
+	if runInfo.Action == nil {
+		validationError = validationError.Append(ErrInvalidActionType)
+	} else if err := runInfo.Action.Validate(); err != nil {
+		validationError = validationError.Append(ErrInvalidField{"action"})
+		validationError = validationError.Append(err)
+	}
+
+	if runInfo.Monitor != nil {
+		if err := runInfo.Monitor.Validate(); err != nil {
+			validationError = validationError.Append(ErrInvalidField{"monitor"})
+			validationError = validationError.Append(err)
+		}
+	}
 
 	for _, envVar := range runInfo.EnvironmentVariables {
-		ve = ve.Check(envVar)
+		validationError = validationError.Check(envVar)
 	}
 
 	for _, rule := range runInfo.EgressRules {
-		ve = ve.Check(rule)
+		err := rule.Validate()
+		if err != nil {
+			validationError = validationError.Append(ErrInvalidField{"egress_rules"})
+			validationError = validationError.Append(err)
+		}
 	}
 
 	if runInfo.GetCpuWeight() > 100 {
-		ve = ve.Append(ErrInvalidField{"cpu_weight"})
+		validationError = validationError.Append(ErrInvalidField{"cpu_weight"})
 	}
 
-	err := validateCachedDependencies(runInfo.CachedDependencies, runInfo.LegacyDownloadUser)
+	err := validateCachedDependencies(runInfo.CachedDependencies)
 	if err != nil {
-		ve = ve.Append(err)
+		validationError = validationError.Append(err)
+	}
+
+	err = validateImageLayers(runInfo.ImageLayers, runInfo.LegacyDownloadUser)
+	if err != nil {
+		validationError = validationError.Append(err)
+	}
+
+	if runInfo.MetricTags == nil {
+		validationError = validationError.Append(ErrInvalidField{"metric_tags"})
+	}
+
+	err = validateMetricTags(runInfo.MetricTags, runInfo.GetMetricsGuid())
+	if err != nil {
+		validationError = validationError.Append(ErrInvalidField{"metric_tags"})
+		validationError = validationError.Append(err)
+	}
+
+	err = validateSidecars(runInfo.Sidecars)
+	if err != nil {
+		validationError = validationError.Append(ErrInvalidField{"sidecars"})
+		validationError = validationError.Append(err)
 	}
 
 	for _, mount := range runInfo.VolumeMounts {
-		ve = ve.Check(mount)
+		validationError = validationError.Check(mount)
 	}
 
-	return ve.ToError()
+	if runInfo.ImageUsername == "" && runInfo.ImagePassword != "" {
+		validationError = validationError.Append(ErrInvalidField{"image_username"})
+	}
+
+	if runInfo.ImageUsername != "" && runInfo.ImagePassword == "" {
+		validationError = validationError.Append(ErrInvalidField{"image_password"})
+	}
+
+	if runInfo.CheckDefinition != nil {
+		if err := runInfo.CheckDefinition.Validate(); err != nil {
+			validationError = validationError.Append(ErrInvalidField{"check_definition"})
+			validationError = validationError.Append(err)
+		}
+	}
+
+	if limit := runInfo.LogRateLimit; limit != nil {
+		if limit.BytesPerSecond < -1 {
+			validationError = validationError.Append(ErrInvalidField{"log_rate_limit"})
+		}
+	}
+
+	return validationError.ToError()
 }
 
-func (*DesiredLRPRunInfo) Version() format.Version {
+func (*CertificateProperties) Version() format.Version {
 	return format.V0
+}
+
+func (CertificateProperties) Validate() error {
+	return nil
 }
