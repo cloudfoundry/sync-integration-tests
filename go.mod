@@ -28,9 +28,9 @@ require (
 	github.com/tedsuo/ifrit v0.0.0-20160623190214-6711154296c2 // indirect
 	github.com/tedsuo/rata v1.0.0 // indirect
 	github.com/vito/go-sse v0.0.0-20160212001227-fd69d275caac // indirect
-	golang.org/x/net v0.1.0 // indirect
-	golang.org/x/sys v0.1.0 // indirect
-	golang.org/x/text v0.4.0 // indirect
+	golang.org/x/net v0.7.0 // indirect
+	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/text v0.7.0 // indirect
 	google.golang.org/genproto v0.0.0-20180403170831-35de2414665f // indirect
 	google.golang.org/grpc v1.11.1 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
