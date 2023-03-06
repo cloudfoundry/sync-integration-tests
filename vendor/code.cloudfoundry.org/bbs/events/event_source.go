@@ -69,7 +69,9 @@ func NewEventFromModelEvent(eventID int, event models.Event) (sse.Event, error) 
 	}, nil
 }
 
-//go:generate counterfeiter -o eventfakes/fake_event_source.go . EventSource
+//go:generate counterfeiter -generate
+
+//counterfeiter:generate -o eventfakes/fake_event_source.go . EventSource
 
 // EventSource provides sequential access to a stream of events.
 type EventSource interface {
@@ -86,7 +88,7 @@ type EventSource interface {
 	Close() error
 }
 
-//go:generate counterfeiter -o eventfakes/fake_raw_event_source.go . RawEventSource
+//counterfeiter:generate -o eventfakes/fake_raw_event_source.go . RawEventSource
 
 type RawEventSource interface {
 	Next() (sse.Event, error)
@@ -195,6 +197,60 @@ func parseRawEvent(rawEvent sse.Event) (models.Event, error) {
 
 	case models.EventTypeActualLRPCrashed:
 		event := new(models.ActualLRPCrashedEvent)
+		err := proto.Unmarshal(data, event)
+		if err != nil {
+			return nil, NewInvalidPayloadError(rawEvent.Name, err)
+		}
+
+		return event, nil
+
+	case models.EventTypeTaskCreated:
+		event := new(models.TaskCreatedEvent)
+		err := proto.Unmarshal(data, event)
+		if err != nil {
+			return nil, NewInvalidPayloadError(rawEvent.Name, err)
+		}
+
+		return event, nil
+
+	case models.EventTypeTaskChanged:
+		event := new(models.TaskChangedEvent)
+		err := proto.Unmarshal(data, event)
+		if err != nil {
+			return nil, NewInvalidPayloadError(rawEvent.Name, err)
+		}
+
+		return event, nil
+
+	case models.EventTypeTaskRemoved:
+		event := new(models.TaskRemovedEvent)
+		err := proto.Unmarshal(data, event)
+		if err != nil {
+			return nil, NewInvalidPayloadError(rawEvent.Name, err)
+		}
+
+		return event, nil
+
+	case models.EventTypeActualLRPInstanceCreated:
+		event := new(models.ActualLRPInstanceCreatedEvent)
+		err := proto.Unmarshal(data, event)
+		if err != nil {
+			return nil, NewInvalidPayloadError(rawEvent.Name, err)
+		}
+
+		return event, nil
+
+	case models.EventTypeActualLRPInstanceChanged:
+		event := new(models.ActualLRPInstanceChangedEvent)
+		err := proto.Unmarshal(data, event)
+		if err != nil {
+			return nil, NewInvalidPayloadError(rawEvent.Name, err)
+		}
+
+		return event, nil
+
+	case models.EventTypeActualLRPInstanceRemoved:
+		event := new(models.ActualLRPInstanceRemovedEvent)
 		err := proto.Unmarshal(data, event)
 		if err != nil {
 			return nil, NewInvalidPayloadError(rawEvent.Name, err)
