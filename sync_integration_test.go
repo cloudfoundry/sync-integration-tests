@@ -10,9 +10,9 @@ import (
 	"code.cloudfoundry.org/bbs/models"
 	"code.cloudfoundry.org/copilot/api"
 	"code.cloudfoundry.org/sync-integration-tests/helpers"
-	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
-	"github.com/cloudfoundry-incubator/cf-test-helpers/generator"
-	. "github.com/onsi/ginkgo"
+	"github.com/cloudfoundry/cf-test-helpers/v2/cf"
+	"github.com/cloudfoundry/cf-test-helpers/v2/generator"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
@@ -23,7 +23,7 @@ var _ = Describe("Syncing", func() {
 			const BbsAppsDomain = "cf-apps"
 
 			AfterEach(func() {
-				domains, err := bbsClient.Domains(logger)
+				domains, err := bbsClient.Domains(logger, "someTraceIDString")
 				Expect(err).To(BeNil())
 				Expect(domains).To(ContainElement(BbsAppsDomain), "Freshness bump failed!")
 			})
@@ -42,7 +42,7 @@ var _ = Describe("Syncing", func() {
 				DeleteProcessGuidFromDiego(processGuid)
 
 				Eventually(func() error {
-					_, err := bbsClient.DesiredLRPByProcessGuid(logger, processGuid)
+					_, err := bbsClient.DesiredLRPByProcessGuid(logger, "someTraceIDString", processGuid)
 					return err
 				}, Timeout).ShouldNot(HaveOccurred())
 			})
@@ -57,7 +57,7 @@ var _ = Describe("Syncing", func() {
 					return body
 				}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
 
-				desiredLRPs, err := bbsClient.DesiredLRPs(logger, models.DesiredLRPFilter{})
+				desiredLRPs, err := bbsClient.DesiredLRPs(logger, "someTraceIDString", models.DesiredLRPFilter{})
 				Expect(err).NotTo(HaveOccurred())
 
 				guid := cf.Cf("app", appName, "--guid").Wait(Timeout).Out.Contents()
@@ -84,10 +84,10 @@ var _ = Describe("Syncing", func() {
 						Annotation: bogusAnnotation,
 					},
 				}
-				Expect(bbsClient.UpdateDesiredLRP(logger, processGuid, &desiredLRPUpdate)).To(Succeed())
+				Expect(bbsClient.UpdateDesiredLRP(logger, "someTraceIDString", processGuid, &desiredLRPUpdate)).To(Succeed())
 
 				Eventually(func() int32 {
-					desiredLRP, err := bbsClient.DesiredLRPByProcessGuid(logger, processGuid)
+					desiredLRP, err := bbsClient.DesiredLRPByProcessGuid(logger, "someTraceIDString", processGuid)
 					Expect(err).NotTo(HaveOccurred())
 					return desiredLRP.Instances
 				}, Timeout).Should(Equal(int32(1)))
@@ -103,7 +103,7 @@ var _ = Describe("Syncing", func() {
 					return body
 				}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
 
-				desiredLRPs, err := bbsClient.DesiredLRPs(logger, models.DesiredLRPFilter{})
+				desiredLRPs, err := bbsClient.DesiredLRPs(logger, "someTraceIDString", models.DesiredLRPFilter{})
 				Expect(err).NotTo(HaveOccurred())
 
 				guid := cf.Cf("app", appName, "--guid").Wait(Timeout).Out.Contents()
@@ -127,10 +127,10 @@ var _ = Describe("Syncing", func() {
 					return statusCode
 				}, Timeout, "1s").Should(Equal(http.StatusNotFound))
 
-				Expect(bbsClient.DesireLRP(logger, &desiredLRP)).To(Succeed())
+				Expect(bbsClient.DesireLRP(logger, "someTraceIDString", &desiredLRP)).To(Succeed())
 
 				Eventually(func() error {
-					_, err := bbsClient.DesiredLRPByProcessGuid(logger, desiredLRP.ProcessGuid)
+					_, err := bbsClient.DesiredLRPByProcessGuid(logger, "someTraceIDString", desiredLRP.ProcessGuid)
 					return err
 				}, Timeout).Should(Equal(models.ErrResourceNotFound))
 			})
@@ -201,7 +201,7 @@ var _ = Describe("Syncing", func() {
 					DeleteProcessGuidFromDiego(processGuid)
 
 					Eventually(func() error {
-						_, err := bbsClient.DesiredLRPByProcessGuid(logger, processGuid)
+						_, err := bbsClient.DesiredLRPByProcessGuid(logger, "someTraceIDString", processGuid)
 						return err
 					}, PushTimeout).ShouldNot(HaveOccurred())
 
@@ -252,7 +252,7 @@ var _ = Describe("Syncing", func() {
 						DeleteProcessGuidFromDiego(processGuid)
 
 						Eventually(func() error {
-							_, err := bbsClient.DesiredLRPByProcessGuid(logger, processGuid)
+							_, err := bbsClient.DesiredLRPByProcessGuid(logger, "someTraceIDString", processGuid)
 							return err
 						}, PushTimeout).ShouldNot(HaveOccurred())
 

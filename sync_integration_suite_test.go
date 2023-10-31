@@ -11,11 +11,11 @@ import (
 
 	"code.cloudfoundry.org/bbs"
 	"code.cloudfoundry.org/bbs/models"
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
-	"github.com/cloudfoundry-incubator/cf-test-helpers/workflowhelpers"
-	. "github.com/onsi/ginkgo"
+	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/lagertest"
+	"github.com/cloudfoundry/cf-test-helpers/v2/cf"
+	"github.com/cloudfoundry/cf-test-helpers/v2/workflowhelpers"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 
@@ -130,7 +130,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	bbsClient, err = bbs.NewSecureSkipVerifyClient(BBSAddress, testConfig.BBSClientCert, testConfig.BBSClientKey, 0, 0)
 	Expect(err).NotTo(HaveOccurred())
 	Eventually(func() bool {
-		return bbsClient.Ping(logger)
+		return bbsClient.Ping(logger, "someTraceIDString")
 	}, ShortTimeout, 5*time.Second).Should(BeTrue(), "Unable to reach BBS at %s", BBSAddress)
 
 	runRouteTests = testConfig.CopilotClientCert != "" && testConfig.CopilotClientKey != ""
@@ -176,7 +176,7 @@ func GetAppGuid(appName string) string {
 }
 
 func GetProcessGuid(appName string) string {
-	desiredLRPs, err := bbsClient.DesiredLRPs(logger, models.DesiredLRPFilter{})
+	desiredLRPs, err := bbsClient.DesiredLRPs(logger, "someTraceIDString", models.DesiredLRPFilter{})
 	Expect(err).NotTo(HaveOccurred())
 
 	guid := cf.Cf("app", appName, "--guid").Wait(Timeout).Out.Contents()
@@ -193,7 +193,7 @@ func GetProcessGuid(appName string) string {
 func DeleteProcessGuidFromDiego(processGuid string) {
 	Expect(processGuid).NotTo(BeEmpty())
 
-	Expect(bbsClient.RemoveDesiredLRP(logger, processGuid)).To(Succeed())
+	Expect(bbsClient.RemoveDesiredLRP(logger, "someTraceIDString", processGuid)).To(Succeed())
 }
 
 func GetDropletGuidForApp(appGuid string) string {
