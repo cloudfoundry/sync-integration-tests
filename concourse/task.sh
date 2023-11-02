@@ -78,7 +78,7 @@ mkdir -p "${GOPATH}/src/code.cloudfoundry.org"
 cp -a sync-integration-tests "${GOPATH}/src/code.cloudfoundry.org"
 
 pushd "${GOPATH}/src/code.cloudfoundry.org/sync-integration-tests" > /dev/null
-  ginkgo -nodes="${NODES}" --flakeAttempts="${FLAKE_ATTEMPTS}"
+  ginkgo -nodes="${NODES}" --flake-attempts="${FLAKE_ATTEMPTS}"
 popd > /dev/null
 
 exit 0
