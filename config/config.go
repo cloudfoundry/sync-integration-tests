@@ -17,8 +17,6 @@ type Config struct {
 	AppsDomain           string `json:"cf_apps_domain"`
 	BBSClientCert        string `json:"bbs_client_cert"`
 	BBSClientKey         string `json:"bbs_client_key"`
-	CopilotClientCert    string `json:"copilot_client_cert"`
-	CopilotClientKey     string `json:"copilot_client_key"`
 	BoshBinary           string `json:"bosh_binary"`
 	APIInstance          string `json:"bosh_api_instance"`
 	BoshDeploymentName   string `json:"bosh_deployment_name"`
