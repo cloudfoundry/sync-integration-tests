@@ -59,3 +59,19 @@
 [[constraint]]
   branch = "master"
   name = "code.cloudfoundry.org/bbs"
+
+[[constraint]]
+  branch = "master"
+  name = "code.cloudfoundry.org/durationjson"
+
+[[constraint]]
+  name = "github.com/gogo/protobuf"
+  version = "1.1.1"
+
+[[constraint]]
+  name = "istio.io/istio"
+  version = "1.2.2"
+
+[[constraint]]
+  name = "istio.io/api"
+  version = "1.2.2"

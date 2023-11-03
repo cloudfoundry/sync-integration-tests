@@ -123,11 +123,37 @@ func (c Config) GetScaledTimeout(timeout time.Duration) time.Duration {
 }
 
 // the following are not used but need to be implemented to satisfy the required interface
-func (c Config) GetConfigurableTestPassword() string { return "" }
-func (c Config) GetExistingUser() string             { return "" }
-func (c Config) GetExistingUserPassword() string     { return "" }
-func (c Config) GetPersistentAppOrg() string         { return "" }
-func (c Config) GetPersistentAppQuotaName() string   { return "" }
-func (c Config) GetPersistentAppSpace() string       { return "" }
-func (c Config) GetShouldKeepUser() bool             { return false }
-func (c Config) GetUseExistingUser() bool            { return false }
+func (c Config) GetConfigurableTestPassword() string     { return "" }
+func (c Config) GetExistingUser() string                 { return "" }
+func (c Config) GetExistingUserPassword() string         { return "" }
+func (c Config) GetPersistentAppOrg() string             { return "" }
+func (c Config) GetPersistentAppQuotaName() string       { return "" }
+func (c Config) GetPersistentAppSpace() string           { return "" }
+func (c Config) GetShouldKeepUser() bool                 { return false }
+func (c Config) GetUseExistingUser() bool                { return false }
+func (c Config) GetAdminOrigin() string                  { return "" }
+func (c Config) GetUserOrigin() string                   { return "" }
+func (c Config) GetUseExistingOrganization() bool        { return false }
+func (c Config) GetUseExistingSpace() bool               { return false }
+func (c Config) GetAddExistingUserToExistingSpace() bool { return false }
+func (c Config) GetAdminClient() string                  { return "" }
+func (c Config) GetExistingClient() string               { return "" }
+func (c Config) GetExistingOrganization() string {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (c Config) GetExistingSpace() string {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (c Config) GetAdminClientSecret() string {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (c Config) GetExistingClientSecret() string {
+	//TODO implement me
+	panic("implement me")
+}

@@ -8,31 +8,8 @@ import (
 	"code.cloudfoundry.org/copilot/api"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/encoding/gzip"
 )
-
-type IstioClient interface {
-	api.IstioCopilotClient
-	io.Closer
-}
-
-type istioClient struct {
-	api.IstioCopilotClient
-	*grpc.ClientConn
-}
-
-func NewIstioClient(serverAddress string, tlsConfig *tls.Config) (IstioClient, error) {
-	conn, err := grpc.Dial(serverAddress,
-		grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("grpc dial: %s", err)
-	}
-
-	return &istioClient{
-		IstioCopilotClient: api.NewIstioCopilotClient(conn),
-		ClientConn:         conn,
-	}, nil
-}
 
 type CloudControllerClient interface {
 	api.CloudControllerCopilotClient
@@ -47,6 +24,7 @@ type cloudControllerClient struct {
 func NewCloudControllerClient(serverAddress string, tlsConfig *tls.Config) (CloudControllerClient, error) {
 	conn, err := grpc.Dial(serverAddress,
 		grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)),
+		grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name)),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("grpc dial: %s", err)
@@ -55,5 +33,27 @@ func NewCloudControllerClient(serverAddress string, tlsConfig *tls.Config) (Clou
 	return &cloudControllerClient{
 		CloudControllerCopilotClient: api.NewCloudControllerCopilotClient(conn),
 		ClientConn:                   conn,
+	}, nil
+}
+
+type VIPResolverCopilotClient interface {
+	api.VIPResolverCopilotClient
+	io.Closer
+}
+
+type vipResolverCopilotClient struct {
+	api.VIPResolverCopilotClient
+	*grpc.ClientConn
+}
+
+func NewVIPResolverCopilotClient(serverAddress string, dialOpts ...grpc.DialOption) (VIPResolverCopilotClient, error) {
+	conn, err := grpc.Dial(serverAddress, dialOpts...)
+	if err != nil {
+		return nil, fmt.Errorf("grpc dial: %s", err)
+	}
+
+	return &vipResolverCopilotClient{
+		VIPResolverCopilotClient: api.NewVIPResolverCopilotClient(conn),
+		ClientConn:               conn,
 	}, nil
 }
