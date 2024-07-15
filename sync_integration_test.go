@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"code.cloudfoundry.org/bbs/models"
-	"code.cloudfoundry.org/sync-integration-tests/helpers"
 	"github.com/cloudfoundry/cf-test-helpers/v2/cf"
 	"github.com/cloudfoundry/cf-test-helpers/v2/generator"
 	. "github.com/onsi/ginkgo/v2"
@@ -33,7 +33,7 @@ var _ = Describe("Syncing", func() {
 				Eventually(func() string {
 					body, _ := CurlAppRoot(appName)
 					return body
-				}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
+				}, Timeout, 1*time.Second).Should(ContainSubstring("Hi, I'm Dora!"))
 
 				processGuid := GetProcessGuid(appName)
 				DeleteProcessGuidFromDiego(processGuid)
@@ -41,7 +41,7 @@ var _ = Describe("Syncing", func() {
 				Eventually(func() error {
 					_, err := bbsClient.DesiredLRPByProcessGuid(logger, "someTraceIDString", processGuid)
 					return err
-				}, Timeout).ShouldNot(HaveOccurred())
+				}, PushTimeout, 1*time.Second).ShouldNot(HaveOccurred())
 			})
 
 			It("refreshes stale processes", func() {
@@ -52,7 +52,7 @@ var _ = Describe("Syncing", func() {
 				Eventually(func() string {
 					body, _ := CurlAppRoot(appName)
 					return body
-				}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
+				}, Timeout, 1*time.Second).Should(ContainSubstring("Hi, I'm Dora!"))
 
 				desiredLRPs, err := bbsClient.DesiredLRPs(logger, "someTraceIDString", models.DesiredLRPFilter{})
 				Expect(err).NotTo(HaveOccurred())
@@ -87,7 +87,7 @@ var _ = Describe("Syncing", func() {
 					desiredLRP, err := bbsClient.DesiredLRPByProcessGuid(logger, "someTraceIDString", processGuid)
 					Expect(err).NotTo(HaveOccurred())
 					return desiredLRP.Instances
-				}, Timeout).Should(Equal(int32(1)))
+				}, Timeout, 1*time.Second).Should(Equal(int32(1)))
 			})
 
 			It("cancels processes that should not be running according to CC", func() {
@@ -98,7 +98,7 @@ var _ = Describe("Syncing", func() {
 				Eventually(func() string {
 					body, _ := CurlAppRoot(appName)
 					return body
-				}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
+				}, Timeout, 1*time.Second).Should(ContainSubstring("Hi, I'm Dora!"))
 
 				desiredLRPs, err := bbsClient.DesiredLRPs(logger, "someTraceIDString", models.DesiredLRPFilter{})
 				Expect(err).NotTo(HaveOccurred())
@@ -122,14 +122,14 @@ var _ = Describe("Syncing", func() {
 				Eventually(func() int {
 					_, statusCode := CurlAppRoot(appName)
 					return statusCode
-				}, Timeout, "1s").Should(Equal(http.StatusNotFound))
+				}, Timeout, 1*time.Second).Should(Equal(http.StatusNotFound))
 
 				Expect(bbsClient.DesireLRP(logger, "someTraceIDString", &desiredLRP)).To(Succeed())
 
 				Eventually(func() error {
 					_, err := bbsClient.DesiredLRPByProcessGuid(logger, "someTraceIDString", desiredLRP.ProcessGuid)
 					return err
-				}, Timeout).Should(Equal(models.ErrResourceNotFound))
+				}, Timeout, 1*time.Second).Should(Equal(models.ErrResourceNotFound))
 			})
 
 			Describe("revisions", func() {
@@ -149,50 +149,50 @@ var _ = Describe("Syncing", func() {
 					appGuid := GetAppGuid(appName)
 					ogDoraGuid := GetDropletGuidForApp(appGuid)
 
-					Expect(cf.Cf("set-env", appName, "FOO", "og_bar").Wait(ShortTimeout)).To(Exit(0))
+					Expect(cf.Cf("set-env", appName, "FOO", "og_bar").Wait(Timeout)).To(Exit(0))
 					revisionsEnablePath := fmt.Sprintf("/v3/apps/%s/features/revisions", appGuid)
-					Expect(cf.Cf("curl", revisionsEnablePath, "-X", "PATCH", "-d", `{"enabled": true}`).Wait(ShortTimeout)).To(Exit(0))
+					Expect(cf.Cf("curl", revisionsEnablePath, "-X", "PATCH", "-d", `{"enabled": true}`).Wait(Timeout)).To(Exit(0))
 
 					Expect(cf.Cf("restart", appName).Wait(PushTimeout)).To(Exit(0))
 
 					Eventually(func() string {
 						body, _ := CurlAppRoot(appName)
 						return body
-					}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
+					}, Timeout, 1*time.Second).Should(ContainSubstring("Hi, I'm Dora!"))
 
 					Eventually(func() string {
 						body, _ := CurlApp(appName, "/env/FOO")
 						return body
-					}, Timeout).Should(ContainSubstring("og_bar"))
+					}, Timeout, 1*time.Second).Should(ContainSubstring("og_bar"))
 
 					By("deploying other dora to be the last intentionally started revision")
 					webProcessGuid := GetCCProcessGuidsForType(appGuid, "web")[0]
 					newCommand := fmt.Sprintf(`{"command": "%s"}`, "TEST_VAR=real bundle exec rackup config.ru -p $PORT")
 					cf.Cf("curl", fmt.Sprintf("/v3/processes/%s", webProcessGuid), "-X", "PATCH", "-d", newCommand)
-					Expect(cf.Cf("set-env", appName, "FOO", "ng_bar").Wait(ShortTimeout)).To(Exit(0))
+					Expect(cf.Cf("set-env", appName, "FOO", "ng_bar").Wait(Timeout)).To(Exit(0))
 					Expect(cf.Cf("push", appName, "-p", "fixtures/other-dora", "-b", "ruby_buildpack").Wait(PushTimeout)).To(Exit(0))
 
 					Eventually(func() string {
 						body, _ := CurlAppRoot(appName)
 						return body
-					}, Timeout).Should(ContainSubstring("Hi, I'm Other Dora!"))
+					}, Timeout, 1*time.Second).Should(ContainSubstring("Hi, I'm Other Dora!"))
 
 					Eventually(func() string {
 						body, _ := CurlApp(appName, "/env/FOO")
 						return body
-					}, Timeout).Should(ContainSubstring("ng_bar"))
+					}, Timeout, 1*time.Second).Should(ContainSubstring("ng_bar"))
 
 					Eventually(func() string {
 						body, _ := CurlApp(appName, "/env/TEST_VAR")
 						return body
-					}, Timeout).Should(ContainSubstring("real"))
+					}, Timeout, 1*time.Second).Should(ContainSubstring("real"))
 
 					By("setting droplet back to OG dora and the env var back to og_bar")
 					webProcessGuid = GetCCProcessGuidsForType(appGuid, "web")[0]
 					newCommand = fmt.Sprintf(`{"command": "%s"}`, "TEST_VAR=fake bundle exec rackup config.ru -p $PORT")
 					cf.Cf("curl", fmt.Sprintf("/v3/processes/%s", webProcessGuid), "-X", "PATCH", "-d", newCommand)
-					Expect(cf.Cf("set-env", appName, "FOO", "og_bar").Wait(ShortTimeout)).To(Exit(0))
-					Expect(cf.Cf("set-droplet", appName, ogDoraGuid).Wait(ShortTimeout)).To(Exit(0))
+					Expect(cf.Cf("set-env", appName, "FOO", "og_bar").Wait(Timeout)).To(Exit(0))
+					Expect(cf.Cf("set-droplet", appName, ogDoraGuid).Wait(Timeout)).To(Exit(0))
 
 					processGuid := GetProcessGuid(appName)
 					DeleteProcessGuidFromDiego(processGuid)
@@ -200,23 +200,23 @@ var _ = Describe("Syncing", func() {
 					Eventually(func() error {
 						_, err := bbsClient.DesiredLRPByProcessGuid(logger, "someTraceIDString", processGuid)
 						return err
-					}, PushTimeout).ShouldNot(HaveOccurred())
+					}, PushTimeout, 1*time.Second).ShouldNot(HaveOccurred())
 
 					By("when everything has converged, we should be running the last intentionally started revision")
 					Eventually(func() string {
 						body, _ := CurlAppRoot(appName)
 						return body
-					}, Timeout).Should(ContainSubstring("Hi, I'm Other Dora!"))
+					}, Timeout, 1*time.Second).Should(ContainSubstring("Hi, I'm Other Dora!"))
 
 					Eventually(func() string {
 						body, _ := CurlApp(appName, "/env/FOO")
 						return body
-					}, Timeout).Should(ContainSubstring("ng_bar"))
+					}, Timeout, 1*time.Second).Should(ContainSubstring("ng_bar"))
 
 					Eventually(func() string {
 						body, _ := CurlApp(appName, "/env/TEST_VAR")
 						return body
-					}, Timeout).Should(ContainSubstring("real"))
+					}, Timeout, 1*time.Second).Should(ContainSubstring("real"))
 				})
 			})
 
@@ -231,17 +231,17 @@ var _ = Describe("Syncing", func() {
 						appName := generator.PrefixedRandomName("SITS", "APP")
 
 						Expect(cf.Cf("push", appName, "--no-start", "-p", "fixtures/dora", "-b", "ruby_buildpack").Wait(Timeout)).To(Exit(0))
-						appGUID := helpers.GetAppGuid(appName)
-						helpers.CreateSidecar("my_sidecar", []string{"web"}, "sleep 100000", appGUID)
+						appGUID := GetAppGuid(appName)
+						CreateSidecar("my_sidecar", []string{"web"}, "sleep 100000", appGUID)
 						Expect(cf.Cf("start", appName).Wait(PushTimeout)).To(Exit(0))
 
 						Eventually(func() string {
 							body, _ := CurlAppRoot(appName)
 							return body
-						}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
+						}, Timeout, 1*time.Second).Should(ContainSubstring("Hi, I'm Dora!"))
 
 						By("verify the sidecar is running")
-						session := cf.Cf("ssh", appName, "-c", "ps aux")
+						session := cf.Cf("ssh", appName, "-c", "ps aux").Wait(PushTimeout)
 						fmt.Println(session.Out.Contents())
 						Expect(cf.Cf("ssh", appName, "-c", "ps aux | grep sleep | grep -v grep").Wait(PushTimeout)).To(Exit(0))
 
@@ -251,13 +251,13 @@ var _ = Describe("Syncing", func() {
 						Eventually(func() error {
 							_, err := bbsClient.DesiredLRPByProcessGuid(logger, "someTraceIDString", processGuid)
 							return err
-						}, PushTimeout).ShouldNot(HaveOccurred())
+						}, PushTimeout, 1*time.Second).ShouldNot(HaveOccurred())
 
 						By("Verify the LRP is running again")
 						Eventually(func() string {
 							body, _ := CurlAppRoot(appName)
 							return body
-						}, Timeout).Should(ContainSubstring("Hi, I'm Dora!"))
+						}, Timeout, 1*time.Second).Should(ContainSubstring("Hi, I'm Dora!"))
 
 						By("verify the sidecar is running after the LRP restarted")
 						Expect(cf.Cf("ssh", appName, "-c", "ps aux | grep sleep | grep -v grep").Wait(PushTimeout)).To(Exit(0))
