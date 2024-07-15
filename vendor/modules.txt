@@ -1,4 +1,4 @@
-# code.cloudfoundry.org/bbs v0.0.0-20231204223625-b4a8e8d97ad9
+# code.cloudfoundry.org/bbs v0.0.0-20240418184526-a7ed0dccd9f7
 ## explicit
 code.cloudfoundry.org/bbs
 code.cloudfoundry.org/bbs/encryption
@@ -27,8 +27,8 @@ code.cloudfoundry.org/tlsconfig
 # github.com/bmizerany/pat v0.0.0-20160217103242-c068ca2f0aac
 ## explicit
 github.com/bmizerany/pat
-# github.com/cloudfoundry/cf-test-helpers/v2 v2.8.0
-## explicit; go 1.18
+# github.com/cloudfoundry/cf-test-helpers/v2 v2.9.0
+## explicit; go 1.21
 github.com/cloudfoundry/cf-test-helpers/v2/cf
 github.com/cloudfoundry/cf-test-helpers/v2/commandreporter
 github.com/cloudfoundry/cf-test-helpers/v2/commandstarter
@@ -37,7 +37,7 @@ github.com/cloudfoundry/cf-test-helpers/v2/internal
 github.com/cloudfoundry/cf-test-helpers/v2/silentcommandstarter
 github.com/cloudfoundry/cf-test-helpers/v2/workflowhelpers
 github.com/cloudfoundry/cf-test-helpers/v2/workflowhelpers/internal
-# github.com/go-logr/logr v1.3.0
+# github.com/go-logr/logr v1.4.1
 ## explicit; go 1.18
 github.com/go-logr/logr
 github.com/go-logr/logr/funcr
@@ -64,11 +64,13 @@ github.com/google/go-cmp/cmp/internal/value
 # github.com/google/pprof v0.0.0-20210407192527-94a9f03dee38
 ## explicit; go 1.14
 github.com/google/pprof/profile
-# github.com/jackc/pgx v3.6.2+incompatible
-## explicit
+# github.com/jackc/pgx/v5 v5.5.5
+## explicit; go 1.19
+# github.com/kr/pretty v0.3.0
+## explicit; go 1.12
 # github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
 ## explicit
-# github.com/onsi/ginkgo/v2 v2.15.0
+# github.com/onsi/ginkgo/v2 v2.17.1
 ## explicit; go 1.20
 github.com/onsi/ginkgo/v2
 github.com/onsi/ginkgo/v2/config
@@ -90,8 +92,8 @@ github.com/onsi/ginkgo/v2/internal/parallel_support
 github.com/onsi/ginkgo/v2/internal/testingtproxy
 github.com/onsi/ginkgo/v2/reporters
 github.com/onsi/ginkgo/v2/types
-# github.com/onsi/gomega v1.30.0
-## explicit; go 1.18
+# github.com/onsi/gomega v1.33.0
+## explicit; go 1.20
 github.com/onsi/gomega
 github.com/onsi/gomega/format
 github.com/onsi/gomega/gbytes
@@ -108,6 +110,8 @@ github.com/onsi/gomega/types
 ## explicit; go 1.18
 github.com/openzipkin/zipkin-go/idgenerator
 github.com/openzipkin/zipkin-go/model
+# github.com/stretchr/testify v1.8.1
+## explicit; go 1.13
 # github.com/tedsuo/ifrit v0.0.0-20160623190214-6711154296c2
 ## explicit
 # github.com/tedsuo/rata v1.0.0
@@ -116,13 +120,13 @@ github.com/tedsuo/rata
 # github.com/vito/go-sse v0.0.0-20160212001227-fd69d275caac
 ## explicit
 github.com/vito/go-sse/sse
-# golang.org/x/net v0.19.0
+# golang.org/x/net v0.23.0
 ## explicit; go 1.18
 golang.org/x/net/context
 golang.org/x/net/html
 golang.org/x/net/html/atom
 golang.org/x/net/html/charset
-# golang.org/x/sys v0.15.0
+# golang.org/x/sys v0.18.0
 ## explicit; go 1.18
 golang.org/x/sys/unix
 # golang.org/x/text v0.14.0
@@ -144,8 +148,9 @@ golang.org/x/text/internal/utf8internal
 golang.org/x/text/language
 golang.org/x/text/runes
 golang.org/x/text/transform
-# golang.org/x/tools v0.16.1
+# golang.org/x/tools v0.17.0
 ## explicit; go 1.18
+golang.org/x/tools/cover
 golang.org/x/tools/go/ast/inspector
 # gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 ## explicit; go 1.11
