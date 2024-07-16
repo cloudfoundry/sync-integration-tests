@@ -27,41 +27,19 @@ import (
 	"code.cloudfoundry.org/sync-integration-tests/config"
 )
 
-type relationship struct {
-	App   map[string]string `json:"app"`
-	Route map[string]string `json:"route"`
-}
-
-type destination struct {
-	App    map[string]string `json:"app"`
-	Weight int               `json:"weight"`
-}
-
-type routeList struct {
-	Resources []struct {
-		Metadata struct {
-			Guid string `json:"guid"`
-		} `json:"metadata"`
-	} `json:"resources"`
-}
-
 var (
-	bbsClient         bbs.Client
-	runRouteTests     bool
-	runRevisionsTests bool
-	runSidecarTests   bool
-	logger            lager.Logger
-	testConfig        config.Config
-	testSetup         *workflowhelpers.ReproducibleTestSuiteSetup
+	bbsClient  bbs.Client
+	logger     lager.Logger
+	testConfig config.Config
+	testSetup  *workflowhelpers.ReproducibleTestSuiteSetup
 
 	portForwardingSession *Session
 )
 
 const (
-	BBSAddress   = "https://127.0.0.1:8889"
-	ShortTimeout = 10 * time.Second
-	Timeout      = 60 * time.Second
-	PushTimeout  = 3 * time.Minute
+	BBSAddress  = "https://127.0.0.1:8889"
+	Timeout     = 60 * time.Second
+	PushTimeout = 3 * time.Minute
 )
 
 func loadConfigAndSetVariables() {
@@ -125,7 +103,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	Expect(err).NotTo(HaveOccurred())
 	Eventually(func() bool {
 		return bbsClient.Ping(logger, "someTraceIDString")
-	}, ShortTimeout, 5*time.Second).Should(BeTrue(), "Unable to reach BBS at %s", BBSAddress)
+	}, Timeout, 1*time.Second).Should(BeTrue(), "Unable to reach BBS at %s", BBSAddress)
 
 	testSetup = workflowhelpers.NewTestSuiteSetup(testConfig)
 	testSetup.Setup()
@@ -141,9 +119,34 @@ var _ = SynchronizedAfterSuite(func() {
 	}
 })
 
+func CreateSidecar(name string, processTypes []string, command string, appGuid string) string {
+	sidecarEndpoint := fmt.Sprintf("/v3/apps/%s/sidecars", appGuid)
+	sidecarOneJSON, err := json.Marshal(
+		struct {
+			Name         string   `json:"name"`
+			Command      string   `json:"command"`
+			ProcessTypes []string `json:"process_types"`
+		}{
+			name,
+			command,
+			processTypes,
+		},
+	)
+	Expect(err).NotTo(HaveOccurred())
+	session := cf.Cf("curl", sidecarEndpoint, "-X", "POST", "-d", string(sidecarOneJSON))
+	Eventually(session, Timeout, 1*time.Second).Should(Exit(0))
+
+	var sidecarData struct {
+		Guid string `json:"guid"`
+	}
+	err = json.Unmarshal(session.Out.Contents(), &sidecarData)
+	Expect(err).NotTo(HaveOccurred())
+	return sidecarData.Guid
+}
+
 func GetAppGuid(appName string) string {
 	cfApp := cf.Cf("app", appName, "--guid")
-	Eventually(cfApp, Timeout).Should(Exit(0))
+	Eventually(cfApp, Timeout, 1*time.Second).Should(Exit(0))
 
 	appGuid := strings.TrimSpace(string(cfApp.Out.Contents()))
 	Expect(appGuid).NotTo(Equal(""))
@@ -187,31 +190,6 @@ func GetDropletGuidForApp(appGuid string) string {
 	Expect(dropletResult.Resources).To(HaveLen(1))
 
 	return dropletResult.Resources[0].Guid
-}
-
-func GetRouteGuid(appName string) string {
-	appGuid := GetAppGuid(appName)
-
-	routes := cf.Cf("curl", fmt.Sprintf("/v2/apps/%s/routes", appGuid)).Wait(Timeout).Out.Contents()
-	Expect(routes).NotTo(BeEmpty())
-
-	type routesResponse struct {
-		Resources []struct {
-			Metadata struct {
-				Guid string
-			}
-			Entity struct {
-				Host string
-			}
-		}
-	}
-	r := &routesResponse{}
-
-	json.Unmarshal(routes, r)
-	routeGuid := r.Resources[0].Metadata.Guid
-	Expect(routeGuid).NotTo(BeEmpty())
-
-	return routeGuid
 }
 
 func CurlAppRoot(appName string) (string, int) {
