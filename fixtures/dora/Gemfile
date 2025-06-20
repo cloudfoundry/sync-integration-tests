@@ -1,10 +1,10 @@
 source "http://rubygems.org"
 
-gem "sinatra"
+gem "sinatra", ">= 3.0.6"
 gem "json"
 gem "puma"
 
 group :test, :development do
   gem "rspec"
-  gem "rack-test"
+  gem "rack-test", ">= 2.1.0"
 end
