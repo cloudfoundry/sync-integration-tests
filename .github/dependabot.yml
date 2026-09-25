@@ -1,0 +1,16 @@
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: bundler
+    directory: /fixtures/dora
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: bundler
+    directory: /fixtures/other-dora
+    schedule:
+      interval: weekly
