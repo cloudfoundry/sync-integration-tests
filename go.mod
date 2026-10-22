@@ -6,7 +6,7 @@ require (
 	code.cloudfoundry.org/bbs v1.18.0
 	code.cloudfoundry.org/bbs/models v1.14.0
 	code.cloudfoundry.org/lager/v3 v3.88.0
-	github.com/cloudfoundry/cf-test-helpers/v2 v2.14.0
+	github.com/cloudfoundry/cf-test-helpers/v2 v2.15.0
 	github.com/onsi/ginkgo/v2 v2.33.0
 	github.com/onsi/gomega v1.44.0
 )
